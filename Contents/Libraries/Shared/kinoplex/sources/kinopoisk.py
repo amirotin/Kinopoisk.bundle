@@ -126,7 +126,7 @@ class KinopoiskSource(SourceBase):
                         self.continue_search = False
                     for i, d in s_match.iteritems():
                         if i in matches:
-                            matches[i] = d if d[4] > matches[id][4] else matches[i]
+                            matches[i] = d if d[4] > matches[i][4] else matches[i]
                         else:
                             matches.update(s_match)
 

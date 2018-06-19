@@ -5,7 +5,7 @@ class Updater(object):
     def __init__(self, core, channel):
         self._core = core
         self._channel = channel
-        self.identifier = 'com.plexapp.agents.kinopoisk'
+        self.identifier = self._core.identifier
         self.stage = self._core.storage.data_item_path('Stage')
         self.stage_path = self._core.storage.join_path(self.stage, self.identifier)
         self.plugins_path = self._core.storage.join_path(self._core.app_support_path, 'Plug-ins')
@@ -34,9 +34,16 @@ class Updater(object):
         try:
             self.update_version = reduce(dict.__getitem__, map[self._channel], git_data)[:7]
             self._core.log.debug('Current actual version for channel %s = %s', self._channel, self.update_version)
+            if self._core.storage.file_exists(self.version_path):
+                current_version = self._core.storage.load(self.version_path)
+                self._core.log.debug('Current actual version %s = %s', current_version, self.update_version)
+                if current_version == self.update_version:
+                    self._core.log.debug('Current version is actual')
+                    return
+
             self.install_zip_from_url(self.archive_url % self.update_version)
         except:
-            self._core.log.debug('No update version for channel %s', self._channel)
+            self._core.log.error('Something goes wrong with updater', exc_info=True)
 
     @property
     def setup_stage(self):
@@ -48,6 +55,12 @@ class Updater(object):
     def unstage(self):
         self._core.log.debug(u"Unstaging files for {} (removing {})".format(self.identifier, self.stage_path))
         self._core.storage.remove_tree(self.stage_path)
+
+    def cleanup(self):
+        inactive_path = self._core.storage.join_path(self.inactive, self.identifier)
+        if self._core.storage.dir_exists(inactive_path):
+            self._core.log.debug(u"Cleaning up after {} (removing {})".format(self.identifier, inactive_path))
+            self._core.storage.remove_tree(inactive_path)
 
     def splitall(self, path):
         allparts = list()
@@ -126,15 +139,15 @@ class Updater(object):
         plist_path = self._core.storage.join_path(self.stage, self.identifier, 'Contents', 'Info.plist')
         plist_data = self._core.storage.load(plist_path, binary=False)
         self._core.storage.save(plist_path, plist_data.replace('{{version}}',self.update_version), binary=False)
-        #self._core.storage.utime(self._core.plist_path, None)
-        #self.clean_old_bundle()
-        #if not self.activate():
-        #    self._core.log.critical(u"Unable to activate {}".format(self.identifier))
-        #    self.unstage()
-        #    return False
+        self._core.storage.utime(self._core.plist_path, None)
+        self.clean_old_bundle()
+        if not self.activate():
+            self._core.log.critical(u"Unable to activate {}".format(self.identifier))
+            self.unstage()
+            return False
 
-        #self.unstage()
-        #self.cleanup()
+        self.unstage()
+        self.cleanup()
 
         return True
 
@@ -142,7 +155,7 @@ class Updater(object):
         stage_paths = list()
         root = self.bundle_name
         stage_path = self.stage_path.lstrip('\\\?')
-        bundle_path = self._core.storage.abs_path(self.bundle.path).lstrip('\\\?')
+        bundle_path = self._core.storage.abs_path(self._core.bundle_path).lstrip('\\\?')
         stage_index = int([i for i, l in enumerate(self.splitall(stage_path)) if l == self.identifier][1])
         bundle_index = int([i for i, l in enumerate(self.splitall(bundle_path)) if l == root][0])
 

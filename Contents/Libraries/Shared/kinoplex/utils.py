@@ -10,6 +10,7 @@ from types import MethodType
 from raven.handlers.logging import SentryHandler
 
 import os, time, logging, urllib3, urllib
+from urllib3.contrib.socks import SOCKSProxyManager
 
 urllib3.disable_warnings()
 
@@ -29,9 +30,16 @@ class PlexHTTPSConnectionPool(urllib3.HTTPSConnectionPool):
     ResponseCls = PlexHTTPResponse
 
 # replace default urllib2 with faster urllib3
-def setup_network(core):
+def setup_network(core, prefs):
     retries = urllib3.Retry(backoff_factor=2, status_forcelist=set([500]))
-    core.networking.pool = urllib3.PoolManager(retries=retries)
+    if prefs['proxy_adr'] or prefs['proxy_type'] == 'none':
+        core.networking.pool = urllib3.PoolManager(retries=retries)
+    else:
+        if prefs['proxy_type'] == 'SOCK5':
+            core.networking.pool = urllib3.SOCKSProxyManager(prefs['proxy_adr'], retries=retries)
+        else:
+            core.networking.pool = urllib3.ProxyManager(prefs['proxy_adr'], retries=retries)
+
     core.networking.pool.pool_classes_by_scheme = {
         'http': PlexHTTPConnectionPool,
         'https': PlexHTTPSConnectionPool,

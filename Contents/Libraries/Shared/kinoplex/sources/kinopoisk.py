@@ -264,7 +264,7 @@ class KinopoiskSource(SourceBase):
             return None
 
         metadata['kp_reviews'] = []
-        for review in reviews_dict['reviews']:
+        for review in reviews_dict.get('reviews'):
             metadata['kp_reviews'].append({
                 'author': review.get('reviewAutor'),
                 'source': 'Kinopoisk',

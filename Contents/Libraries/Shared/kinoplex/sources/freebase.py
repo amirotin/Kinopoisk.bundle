@@ -7,7 +7,9 @@ class FreebaseSource(SourceBase):
         
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from FreebaseSource')
-        freebase = self._fetch_xml(self.c.freebase.base % (self.get_source_id('imdb')[2:], lang))
+        freebase = None
+        if self.get_source_id('imdb'):
+            freebase = self._fetch_xml(self.c.freebase.base % (self.get_source_id('imdb')[2:], lang))
 
         TYPE_MAP = {'primary_trailer': self.api.TrailerObject,
                     'trailer': self.api.TrailerObject,

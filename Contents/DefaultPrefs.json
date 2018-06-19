@@ -12,8 +12,19 @@
     "default":"true"
   },
   {
-    "id":"vpn",
-    "label":"Use http vpn",
+    "id":"proxy_type",
+    "label":"Тип прокси сервера",
+    "type":"enum",
+    "values": [
+      "SOCK5",
+      "HTTP",
+      "none"
+    ],
+    "default": "none"
+  },
+  {
+    "id":"proxy_adr",
+    "label":"Адрес проски сервера",
     "type":"text",
     "default":""
   },

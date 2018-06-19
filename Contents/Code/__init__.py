@@ -11,7 +11,7 @@ globals = getattr(module, "__builtins__")["globals"]
 
 from kinoplex.utils import init_class, setup_sentry, setup_network
 setup_sentry(Core, Platform)
-setup_network(Core)
+setup_network(Core, Prefs)
 
 def Start():
     HTTP.CacheTime = 0

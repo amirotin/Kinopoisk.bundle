@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>CFBundleIdentifier</key>
+        <string>com.plexapp.agents.kinopoisk2</string>
+        <key>PlexFrameworkVersion</key>
+        <string>2</string>
+        <key>PlexPluginClass</key>
+        <string>Agent</string>
+        <key>PlexAgentAttributionText</key>
+        <string>
+            Агент для получения информации о медиа файлах с Русского сайта
+            &lt;a href=&quot;http://www.kinopoisk.ru/&quot;&gt;КиноПоиск&lt;/a&gt;,
+            использование информации которого защищается
+            &lt;a href=&quot;http://www.kinopoisk.ru/level/76/doc/usage/&quot;&gt;пользовательским соглашением&lt;/a&gt;.
+            &lt;br&gt; &lt;br&gt;
+            Для желающих посодействовать автору в разработке плагина -
+            &lt;a href=&quot;https://www.paypal.me/digitalgod&quot;&gt;страничка на PayPal&lt;/a&gt;.
+            &lt;a href=&quot;https://money.yandex.ru/to/410013497591946&quot;&gt;страничка на YandexMoney&lt;/a&gt;.
+            &lt;p style="text-align:right;"&gt;&lt;span style="color:#606060;"&gt;версия плагина &lt;b&gt;2.0-Beta1&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+        </string>
+        <key>PlexPluginCodePolicy</key>
+        <string>Elevated</string>
+        <key>PlexPluginMode</key>
+        <string>Daemon</string>
+    </dict>
+</plist>

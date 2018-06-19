@@ -1,0 +1,56 @@
+[
+  {
+    "id":"sentry",
+    "label":"Включить передачу ошибок в Sentry",
+    "type":"bool",
+    "default":"true"
+  },
+  {
+    "id":"debug",
+    "label":"Включить отладку в логах плагина",
+    "type":"bool",
+    "default":"true"
+  },
+  {
+    "id":"vpn",
+    "label":"Use http vpn",
+    "type":"text",
+    "default":""
+  },
+  {
+    "id":"update_channel",
+    "label":"Канал обновления (none - отключение автообновления)",
+    "type": "enum",
+    "values": [
+      "none",
+      "stable",
+      "beta"
+    ],
+    "default": "stable"
+  },
+  {
+    "id": "update_interval",
+    "label": "Интервал проверки обновлений (в минутах)",
+    "type": "text",
+    "default": "60"
+  },
+  {
+    "id":"channel",
+    "label":"Включить канал для плагина",
+    "type":"bool",
+    "default":"true"
+  },
+  {
+    "id": "ratings",
+    "label": "Ratings Source: ",
+    "type": "enum",
+    "values": [
+      "Kinopoisk",
+      "Rotten Tomatoes",
+      "IMDb",
+      "The Movie Database"
+    ],
+    "default": "Rotten Tomatoes"
+  },
+
+]

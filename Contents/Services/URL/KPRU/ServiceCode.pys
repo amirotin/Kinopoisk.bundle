@@ -1,0 +1,68 @@
+from urlparse import urlparse
+
+KP_TRAILER_DATA = 'https://static.video.yandex.net/get/kinopoisk-trailers/%s/0h.xml'
+HTTP_HEADERS = {
+    'X-Requested-With': 'XMLHttpRequest',
+    'Accept': '*/*',
+    'Accept-Encoding':'gzip, deflate, br',
+    'Accept-Language':'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+    'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.167 Safari/537.36',
+    'DNT':'1'
+}
+
+def MediaObjectsForURL(url):
+    trailer_data = {}
+    media = []
+    try:
+        trailer_id = urlparse(url).path.rpartition('/')[2]
+        trailer_data = JSON.ObjectFromURL(KP_TRAILER_DATA % trailer_id, headers=HTTP_HEADERS)
+    except:
+        Log('Something wrong with trailer url %s', url)
+        raise Ex.MediaNotAvailable
+
+    if not trailer_data:
+        return media
+
+    for clip in trailer_data.get('video-files', {}).get('items', []):
+        if clip['format'] == 'mp4':
+            part = PartObject(
+                key=Callback(PlayVideo, t_id=trailer_id, t_qual=clip['quality']),
+                container=Container.MP4,
+                optimized_for_streaming=True,
+                duration=trailer_data['duration-millis'])
+            part.streams.append(VideoStreamObject(
+                codec=VideoCodec.H264,
+                bitrate=clip['bitrate'],
+                width=clip['width'],
+                height=clip['height']
+            ))
+            part.streams.append(AudioStreamObject(codec=AudioCodec.AAC, channels=2, language_code='xx'))
+            media.append(MediaObject(
+                parts=[part],
+                container=Container.MP4,
+                video_codec=VideoCodec.H264,
+                audio_codec=AudioCodec.AAC,
+                duration=trailer_data['duration-millis'],
+                bitrate=clip['bitrate'],
+                width=clip['width'],
+                height=clip['height']
+            ))
+
+    return media
+
+@indirect
+def PlayVideo(t_id, t_qual, **kwargs):
+    trailer_data = JSON.ObjectFromURL(KP_TRAILER_DATA % t_id, headers=HTTP_HEADERS)
+    video_url = ""
+
+    if not trailer_data:
+        raise Ex.MediaNotAvailable
+
+    for clip in trailer_data.get('video-files', {}).get('items', []):
+        if clip['format'] == 'mp4' and clip['quality'] == t_qual:
+            video_url = clip['get-with-redirect-url']
+
+    if not video_url:
+        raise Ex.MediaNotAvailable
+
+    return Redirect(url=video_url)

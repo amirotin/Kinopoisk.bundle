@@ -33,12 +33,12 @@ class PlexHTTPSConnectionPool(urllib3.HTTPSConnectionPool):
 def setup_network(core, prefs):
     retries = urllib3.Retry(backoff_factor=2, status_forcelist=set([500]))
     if prefs['proxy_adr'] or prefs['proxy_type'] == 'none':
-        core.networking.pool = urllib3.PoolManager(retries=retries)
+        core.networking.pool = urllib3.PoolManager(retries=retries, maxsize=5)
     else:
         if prefs['proxy_type'] == 'SOCK5':
-            core.networking.pool = urllib3.SOCKSProxyManager(prefs['proxy_adr'], retries=retries)
+            core.networking.pool = urllib3.SOCKSProxyManager(prefs['proxy_adr'], retries=retries, maxsize=5)
         else:
-            core.networking.pool = urllib3.ProxyManager(prefs['proxy_adr'], retries=retries)
+            core.networking.pool = urllib3.ProxyManager(prefs['proxy_adr'], retries=retries, maxsize=5)
 
     core.networking.pool.pool_classes_by_scheme = {
         'http': PlexHTTPConnectionPool,

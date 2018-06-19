@@ -111,13 +111,11 @@ config['itunes']['lookup'] = config.itunes.base % 'wsLookup?id=%s'
 config['itunes']['poster'] = '2100x2100bb-92'
 config['itunes']['preview'] = '320x480bb-92'
 
-config['itunes']['fantv'] = 'https://www.fan.tv/movies/%s'
-config['itunes']['fantv_re'] = "//main//div[contains(@class, 'watch-now-modal')]//a[contains(@track-context,'itunes')]/attribute::href"
-
 config['itunes']['trakt_base'] = 'https://trakt.tv/%s'
 config['itunes']['trakt_imdb'] = config.itunes.trakt_base % '/search/imdb/%s'
+config['itunes']['trakt_re_search'] = "//div[@data-type='movie']/meta[@itemprop='url']/attribute::content"
 config['itunes']['trakt_streaming'] = '%s/streaming_links'
-config['itunes']['trakt_re'] = "//a[contains(@data-source,'itunes')]/attribute::href"
+config['itunes']['trakt_re_lnk'] = "//a[contains(@data-source,'itunes')]/attribute::href"
 
 config['itunes']['omdb'] = 'http://www.omdbapi.com/?i=%s&apikey=b59d95b3&tomatoes=true'
 config['itunes']['rt_re'] = "//section[@id='watch-it-now']//a[div/@id='itunesAffiliates']/attribute::href"

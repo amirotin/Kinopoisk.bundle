@@ -88,7 +88,10 @@ class TMDBSource(SourceBase):
         if search_type is 'hash' and plex_hash is not None:
             url = '%s/movie/hash/%s/%s.xml' % (self.c.tmdb.hash_base, plex_hash[0:2], plex_hash)
         else:
-            titleyear_guid = self.titleyear_guid(meta['original_title'], meta['year'])
+            if meta.get('original_title'):
+                titleyear_guid = self.titleyear_guid(meta['original_title'], meta['year'])
+            else:
+                titleyear_guid = self.titleyear_guid(meta['title'], meta['year'])
             url = '%s/movie/guid/%s/%s.xml' % (self.c.tmdb.hash_base, titleyear_guid[0:2], titleyear_guid)
 
         try:

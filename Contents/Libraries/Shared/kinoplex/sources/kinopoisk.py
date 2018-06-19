@@ -60,7 +60,8 @@ class KinopoiskSource(SourceBase):
             for i, movie in enumerate(json):
                 if movie['link'].startswith('/film/') \
                         and (
-                        movie['type'] in ['film', 'first'] or ('is_serial' in movie and movie['is_serial'] == 'mini')) \
+                            (movie['type'] in ['film', 'first'] and movie.get('is_serial', '') == '')
+                            or ('is_serial' in movie and movie['is_serial'] == 'mini')) \
                         and int(movie['year']) <= self.api.Datetime.Now().year:
                     matches[str(movie['id'])] = [movie['rus'], movie['name'], movie['year'], i,
                                                  5 if movie['type'] == 'first' else 0]
@@ -122,7 +123,7 @@ class KinopoiskSource(SourceBase):
                 # if not manual - score each source separate
                 if not manual and self.continue_search:
                     self.app.score.score(media, s_match)
-                    if max(s_match.values(), key=lambda m: m[4])[4] >= self.c.score.besthit:
+                    if s_match.values() and max(s_match.values(), key=lambda m: m[4])[4] >= self.c.score.besthit:
                         self.continue_search = False
                     for i, d in s_match.iteritems():
                         if i in matches:

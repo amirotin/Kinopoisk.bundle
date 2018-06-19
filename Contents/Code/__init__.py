@@ -22,4 +22,4 @@ def ValidatePrefs():
     HTTP.Request("http://127.0.0.1:32400/:/plugins/%s/restart" % Plugin.Identifier, immediate=True, cacheTime=0)
 
 KinopoiskMovieAgent = init_class('KinopoiskMovieAgent', Agent.Movies, globals())
-KinopoiskShowAgent = init_class('KinopoiskShowAgent', Agent.TV_Shows, globals())
+#KinopoiskShowAgent = init_class('KinopoiskShowAgent', Agent.TV_Shows, globals())

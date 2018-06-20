@@ -56,6 +56,7 @@ def setup_network(core, prefs):
 def setup_sentry(core, platform):
     handler = SentryHandler('https://9085bc55cd6a4dc1a8fe3b231e6ac9ae:5dace4d4c92e42d0b9cc972fcd321722@sentry.io/202380', tags={
         'os': platform.OS,
+        'plexname': core.get_server_attribute('friendlyName'),
         'osversion': platform.OSVersion,
         'cpu': platform.CPU,
         'serverversion': platform.ServerVersion

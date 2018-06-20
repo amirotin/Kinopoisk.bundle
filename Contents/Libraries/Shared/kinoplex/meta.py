@@ -38,14 +38,6 @@ def parse_meta(metadata_dict, metadata, api):
             else:
                 for k, v in dict_value.iteritems():
                     attr_obj[k] = v
-
-        elif attr_name is 'originally_available_at':
-
-            try:
-                attr_obj.setcontent(api.Datetime.ParseDate(dict_value).date())
-            except:
-                pass
-
         else:
             attr_obj.setcontent(dict_value)
 
@@ -73,14 +65,14 @@ def prepare_meta(metadata_dict, metadata, api):
     for art, thumb in metadata_dict.get('tmdb_art', {}).iteritems():
         metadata_dict['art'][art] = thumb
 
-    if api.Prefs['ratings'].strip() == 'Kinopoisk':
-        metadata_dict['rating'] = metadata_dict['kp_rating']
-    elif api.Prefs['ratings'].strip() == 'Rotten Tomatoes':
+    if api.Prefs['ratings'].strip() == 'Rotten Tomatoes' and metadata_dict['rt_raings']:
         metadata_dict.update(metadata_dict['rt_raings'])
-    elif api.Prefs['ratings'].strip() == 'IMDb':
+    elif api.Prefs['ratings'].strip() == 'IMDb' and metadata_dict['imdb_rating']:
         metadata_dict['rating'] = metadata_dict['imdb_rating']
-    else:
+    elif api.Prefs['ratings'].strip() == 'The Movie Database' and metadata_dict['tmbp_rating']:
         metadata_dict['rating'] = metadata_dict['tmbp_rating']
+    else:
+        metadata_dict['rating'] = metadata_dict['kp_rating']
 
     parse_meta(metadata_dict, metadata, api)
     for extra in metadata_dict.get('extra_clips', {}):

@@ -25,7 +25,7 @@ class KinopoiskSource(SourceBase):
                     sorted(json.values(), key=lambda k: k['ratingData'].get('rating', {}).get('votes', 0),
                            reverse=True)):
                 if {'originalTitle', 'title', 'year'} <= set(movie) and int(
-                        movie['year']) <= self.api.Datetime.Now().year:
+                        movie['year'][:4]) <= self.api.Datetime.Now().year:
                     matches[str(movie['id'])] = [movie['title'], movie['originalTitle'], int(movie['year']), i, 0]
                     cnt = cnt + 1
         return cnt
@@ -62,7 +62,7 @@ class KinopoiskSource(SourceBase):
                         and (
                             (movie['type'] in ['film', 'first'] and movie.get('is_serial', '') == '')
                             or ('is_serial' in movie and movie['is_serial'] == 'mini')) \
-                        and int(movie['year']) <= self.api.Datetime.Now().year:
+                        and int(movie['year'][:4]) <= self.api.Datetime.Now().year:
                     matches[str(movie['id'])] = [movie['rus'], movie['name'], movie['year'], i,
                                                  5 if movie['type'] == 'first' else 0]
                     cnt = cnt + 1
@@ -114,7 +114,6 @@ class KinopoiskSource(SourceBase):
                     )
                     self.continue_search = False
                     return
-
         for s in search_sources:
             s_match = {}
             if manual or self.continue_search:

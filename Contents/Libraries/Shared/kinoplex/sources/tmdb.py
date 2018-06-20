@@ -158,12 +158,12 @@ class TMDBSource(SourceBase):
             if int(match[5]) >= GOOD_SCORE:
                 return key
 
-        search_title = metadata.get('original_title') if metadata.get('original_title') else metadata.get('title')
-        tmdb_dict = self._fetch_json(self.c.tmdb.search(self.api.String.URLEncode(search_title), metadata['year'], lang, 'true'))
+        search_title = 'original_title' if metadata.get('original_title') else 'title'
+        tmdb_dict = self._fetch_json(self.c.tmdb.search(self.api.String.URLEncode(metadata.get(search_title)), metadata['year'], lang, 'true'))
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for i, movie in enumerate(sorted(tmdb_dict['results'], key=lambda k: k['popularity'], reverse=True)):
                 score = 100
-                score = score - abs(self.api.String.LevenshteinDistance(movie['original_title'].lower(), search_title))
+                score = score - abs(self.api.String.LevenshteinDistance(movie[search_title].lower(), metadata.get(search_title)))
                 score = score - (5 * i)
 
                 if 'release_date' in movie and movie['release_date']:
@@ -185,7 +185,7 @@ class TMDBSource(SourceBase):
                 return best_result['id']
 
 
-        ump_dict = self._fetch_xml(self.c.tmdb.ump_search % (search_title, metadata['year'], ','.join(plexHashes), lang, 0))
+        ump_dict = self._fetch_xml(self.c.tmdb.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
         for video in ump_dict.xpath('//Video'):
             try:
                 video_id = video.get('ratingKey')[video.get('ratingKey').rfind('/') + 1:]
@@ -244,7 +244,7 @@ class TMDBSource(SourceBase):
         valid_names = list()
         metadata['tmdb_posters'] = {}
         movie_images = movie_data.get('images', {})
-        if movie_images['posters']:
+        if movie_images.get('posters'):
             max_average = max([(lambda p: p['vote_average'] or 5)(p) for p in movie_images['posters']])
             max_count = max([(lambda p: p['vote_count'])(p) for p in movie_images['posters']]) or 1
         

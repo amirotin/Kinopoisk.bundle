@@ -1,13 +1,4 @@
 # -*- coding: utf-8 -*-
-def memoize(f):
-    """ Memoization decorator for a function taking a single argument """
-    class memodict(dict):
-        def __missing__(self, key):
-            ret = f(key)
-            if ret: self[key] = ret
-            return ret
-    return memodict().__getitem__
-
 class SourceBase(object):
     def __init__(self, app):
         self.app = app
@@ -30,7 +21,6 @@ class SourceBase(object):
         self.app.meta_id = str(value)
 
     @property
-    @memoize
     def source_id(self):
         return self.get_source_id(self.source_name)
 

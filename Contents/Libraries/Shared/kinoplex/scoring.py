@@ -46,8 +46,7 @@ class Scoring(object):
         self.l('score %s with matches %s', medianame, str(matches))
         name_type = 1 if self._is_valid(unicode(medianame)) else 0
         score_data = {n:k[name_type] for n,k in matches.items()}
-
-        res = process.extract(unicode(medianame), score_data, scorer=fuzz.UWRatio)
+        res = process.extract(unicode(medianame), score_data, scorer=fuzz.UWRatio, limit=15)
         for r in res:
             matches[r[2]][4] += r[1]
             matches[r[2]][4] -= matches[r[2]][3] * self.c.score.penalty.rating

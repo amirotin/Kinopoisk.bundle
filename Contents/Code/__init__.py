@@ -16,7 +16,8 @@ setup_network(Core, Prefs)
 def Start():
     HTTP.CacheTime = 0
     HTTP.Headers['User-Agent'] = 'Plex Kinopoisk.bundle'
-    Thread.CreateTimer(int(Prefs['update_interval'] or 1)*60, Updater.auto_update_thread, core=Core, pref=Prefs)
+    if Prefs['update_channel'] != 'none':
+        Thread.CreateTimer(int(Prefs['update_interval'] or 1)*60, Updater.auto_update_thread, core=Core, pref=Prefs)
 
 def ValidatePrefs():
     HTTP.Request("http://127.0.0.1:32400/:/plugins/%s/restart" % Plugin.Identifier, immediate=True, cacheTime=0)

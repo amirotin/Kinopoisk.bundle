@@ -32,7 +32,11 @@ movie_schema = {
     'themes': {'type': 'dict'},
     'chapters': {'type': 'dict'},
     'extras': {'type': 'dict'},
-    'similar': {'type': 'dict', 'valueschema': {'type': 'string'}}
+    'similar': {'type': 'dict', 'valueschema': {'type': 'string'}},
+    'rating': {},
+    'audience_rating': {},
+    'rating_image': {},
+    'audience_rating_image': {}
 }
 
 class MovieValidator(Validator):

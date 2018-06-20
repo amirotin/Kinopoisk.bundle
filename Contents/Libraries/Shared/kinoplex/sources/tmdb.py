@@ -179,7 +179,7 @@ class TMDBSource(SourceBase):
                     else:
                         score = score - year_delta * per_year_penalty
                 movie['score'] = score
-            best_result = max(tmdb_dict.get('results'), key=lambda x:x['score'])
+            best_result = max(tmdb_dict.get('results') or [{'score':0}], key=lambda x:x['score'])
             if best_result['score'] >= GOOD_SCORE:
                 self.l('best_result = %s', best_result)
                 return best_result['id']

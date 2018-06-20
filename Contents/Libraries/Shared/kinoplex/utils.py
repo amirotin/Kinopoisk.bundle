@@ -29,6 +29,13 @@ class PlexHTTPConnectionPool(urllib3.HTTPConnectionPool):
 class PlexHTTPSConnectionPool(urllib3.HTTPSConnectionPool):
     ResponseCls = PlexHTTPResponse
 
+def getVersion(core):
+    current_version = 'BETA1'
+    version_path = core.storage.join_path(core.bundle_path, 'Contents', 'VERSION')
+    if core.storage.file_exists(version_path):
+        current_version = core.storage.load(version_path)
+    return current_version
+
 # replace default urllib2 with faster urllib3
 def setup_network(core, prefs):
     retries = urllib3.Retry(backoff_factor=2, status_forcelist=set([500]))

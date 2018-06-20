@@ -181,6 +181,8 @@ class KinopoiskSource(SourceBase):
         # original title
         if 'nameEN' in movie_data and movie_data['nameEN'] != movie_data['nameRU']:
             metadata['original_title'] = movie_data['nameEN']
+        else:
+            metadata['original_title'] = ''
 
         # slogan
         metadata['tagline'] = movie_data.get('slogan', '')

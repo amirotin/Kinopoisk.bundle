@@ -273,7 +273,7 @@ class TMDBSource(SourceBase):
         # Backdrops.
         valid_names = list()
         metadata['tmdb_art'] = {}
-        if movie_images['backdrops']:
+        if movie_images.get('backdrops'):
             max_average = max([(lambda p: p['vote_average'] or 5)(p) for p in movie_images['backdrops']])
             max_count = max([(lambda p: p['vote_count'])(p) for p in movie_images['backdrops']]) or 1
         

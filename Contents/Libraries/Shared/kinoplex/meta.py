@@ -55,14 +55,14 @@ def prepare_meta(metadata_dict, metadata, api):
     for art, thumb in metadata_dict.get('tmdb_art', {}).iteritems():
         metadata_dict['art'][art] = thumb
 
-    if api.Prefs['ratings'].strip() == 'Rotten Tomatoes' and metadata_dict['rt_raings']:
+    if api.Prefs['ratings'].strip() == 'Rotten Tomatoes' and metadata_dict.get('rt_raings'):
         metadata_dict.update(metadata_dict['rt_raings'])
-    elif api.Prefs['ratings'].strip() == 'IMDb' and metadata_dict['imdb_rating']:
+    elif api.Prefs['ratings'].strip() == 'IMDb' and metadata_dict.get('imdb_rating'):
         metadata_dict['rating'] = metadata_dict['imdb_rating']
-    elif api.Prefs['ratings'].strip() == 'The Movie Database' and metadata_dict['tmbp_rating']:
+    elif api.Prefs['ratings'].strip() == 'The Movie Database' and metadata_dict.get('tmbp_rating'):
         metadata_dict['rating'] = metadata_dict['tmbp_rating']
     else:
-        metadata_dict['rating'] = metadata_dict['kp_rating']
+        metadata_dict['rating'] = metadata_dict.get('kp_rating')
 
     parse_meta(metadata_dict, metadata, api)
     for extra in metadata_dict.get('extra_clips', {}):

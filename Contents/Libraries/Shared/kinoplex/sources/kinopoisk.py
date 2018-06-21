@@ -97,6 +97,9 @@ class KinopoiskSource(SourceBase):
         matches = {}
         search_sources = [self._api_search, self._main_search, self._suggest_search]
 
+        if manual and self.api.Data.Exists(media.id):
+            self.api.Data.Remove(media.id)
+
         if manual and media.name.find('kinopoisk.ru') >= 0:
             self.l('we got kinopoisk url as name')
             id = media.name.split('-')[-1][:-1]
@@ -159,7 +162,7 @@ class KinopoiskSource(SourceBase):
 
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update KinopoiskSource')
-        self.meta_id = metadata['id']
+        self.meta_id = media.id
         self.load_meta(metadata)
         self.load_staff(metadata)
         self.load_similar(metadata)
@@ -169,7 +172,6 @@ class KinopoiskSource(SourceBase):
     # load main details
     def load_meta(self, metadata):
         movie_data = self.make_request(self.c.kinopoisk.api.film_details, metadata['id'])
-        self.l(movie_data)
         if not movie_data:
             return
 

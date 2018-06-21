@@ -32,7 +32,12 @@ class Updater(object):
         git_data = self._core.data.json.from_string(self._core.networking.http_request(url).content)
         map = {'beta': ('object', 'sha'), 'stable': {'tag_name'}}
         try:
-            self.update_version = reduce(dict.__getitem__, map[self._channel], git_data)[:7]
+            self.update_version = reduce(dict.get, map[self._channel], git_data)
+            if not self.update_version:
+                self._core.log.debug('No updates for channel %s', self._channel)
+                return
+            else:
+                self.update_version = self.update_version[:7]
             self._core.log.debug('Current actual version for channel %s = %s', self._channel, self.update_version)
             if self._core.storage.file_exists(self.version_path):
                 current_version = self._core.storage.load(self.version_path)

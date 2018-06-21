@@ -140,7 +140,6 @@ def search_event(self, results, media, lang, manual=False, version=0, primary=Tr
 def update_event(self, metadata, media, lang, force=False, version=0, periodic=False):
     metadict = dict(id=metadata.id, extras={}, posters={}, art={})
     self.fire('update', metadict, media, lang, force, periodic)
-    self.api.Log('metadict=%s', metadict)
     prepare_meta(metadict, metadata, self.api)
 
 # class constructor

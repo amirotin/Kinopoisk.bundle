@@ -41,7 +41,7 @@ def parse_meta(metadata_dict, metadata, api):
             else:
                 attr_obj.setcontent(dict_value)
         except:
-            api.Log('Error while setting attribute %s with value %s' % (attr_name, dict_value), exc_info=True)
+            api.Log.Error('Error while setting attribute %s with value %s' % (attr_name, dict_value), exc_info=True)
 
 def prepare_meta(metadata_dict, metadata, api):
     metadata_dict['reviews'] = metadata_dict.get('rotten_reviews')

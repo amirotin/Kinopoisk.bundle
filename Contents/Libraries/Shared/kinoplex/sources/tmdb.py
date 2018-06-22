@@ -159,7 +159,8 @@ class TMDBSource(SourceBase):
                 return key
 
         search_title = 'original_title' if metadata.get('original_title') else 'title'
-        tmdb_dict = self._fetch_json(self.c.tmdb.search(self.api.String.URLEncode(metadata.get(search_title)), metadata['year'], lang, 'true'))
+        search_year = metadata['year'] if metadata['originally_available_at'].year == metadata['year'] else metadata['originally_available_at'].year
+        tmdb_dict = self._fetch_json(self.c.tmdb.search(self.api.String.URLEncode(metadata.get(search_title)), search_year, lang, 'true'))
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for i, movie in enumerate(sorted(tmdb_dict['results'], key=lambda k: k['popularity'], reverse=True)):
                 score = 100
@@ -171,9 +172,9 @@ class TMDBSource(SourceBase):
                 else:
                     release_year = -1
 
-                if metadata['year'] > 1900 and release_year:
+                if search_year > 1900 and release_year:
                     per_year_penalty = int(YEAR_PENALTY_MAX / 3)
-                    year_delta = abs(int(metadata['year']) - (int(release_year)))
+                    year_delta = abs(int(search_year) - (int(release_year)))
                     if year_delta > 3:
                         score = score - YEAR_PENALTY_MAX
                     else:
@@ -207,23 +208,24 @@ class TMDBSource(SourceBase):
 
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from TMDBSource')
-        if self.source_id is None:
-            self.source_id = self._search(metadata, media, lang)
+        source_id = self.get_source_id(media.id)
+        if source_id is None:
+            source_id = self.set_source_id(self._search(metadata, media, lang), media.id)
 
         config_dict = self._fetch_json(self.c.tmdb.config)
-        movie_data = self._fetch_json(self.c.tmdb.movie(self.source_id, lang))
+        movie_data = self._fetch_json(self.c.tmdb.movie(source_id, lang))
         if not isinstance(movie_data, dict) or 'overview' not in movie_data or movie_data['overview'] is None or movie_data['overview'] == "":
-            movie_data = self._fetch_json(self.c.tmdb.movie(self.source_id, ''))
+            movie_data = self._fetch_json(self.c.tmdb.movie(source_id, ''))
 
-        if re.match('t*[0-9]{7}', str(self.source_id)):
-            self.source_id = movie_data.get('id')
+        if re.match('t*[0-9]{7}', str(source_id)):
+            self.set_source_id(movie_data.get('id'), media.id)
 
-        if self.get_source_id('imdb') is None and movie_data.get('imdb_id') is not None:
-            self.set_source_id('imdb', movie_data.get('imdb_id'))
+        if self.get_source_id(media.id, 'imdb') is None and movie_data.get('imdb_id') is not None:
+            self.set_source_id(movie_data.get('imdb_id'), media.id, 'imdb')
 
-            # Collections.
+        # Collections.
         metadata['collections'] = []
-        if movie_data.get('belongs_to_collection',''):
+        if movie_data.get('belongs_to_collection', ''):
             metadata['collections'].append(movie_data['belongs_to_collection']['name'].replace(' Collection', ''))
 
         # Studio.

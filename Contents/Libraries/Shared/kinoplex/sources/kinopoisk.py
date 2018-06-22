@@ -7,7 +7,6 @@ import re
 class KinopoiskSource(SourceBase):
     def __init__(self, app):
         super(KinopoiskSource, self).__init__(app)
-        self.continue_search = True
 
     def get_name(self, media):
         return self.api.String.Quote(media.name if self.app.agent_type == 'movies' else media.show, False)
@@ -86,14 +85,14 @@ class KinopoiskSource(SourceBase):
                     cnt = cnt + 1
         return cnt
 
-    def find_by_id(self, id):
-        movie_data = self.make_request(self.c.kinopoisk.api.film_details, id)
+    def find_by_id(self, movie_id):
+        movie_data = self.make_request(self.c.kinopoisk.api.film_details, movie_id)
         if movie_data:
             return movie_data['nameRU'], int(movie_data.get('year').split('-', 1)[0] or 0)
         return None, None
 
     def search(self, results, media, lang, manual=False, primary=True):
-        self.l('search from kinopoisk')
+        continue_search = True
         matches = {}
         search_sources = [self._api_search, self._main_search, self._suggest_search]
 
@@ -102,9 +101,9 @@ class KinopoiskSource(SourceBase):
 
         if manual and media.name.find('kinopoisk.ru') >= 0:
             self.l('we got kinopoisk url as name')
-            id = media.name.split('-')[-1][:-1]
-            if id.isdigit():
-                (title, year) = self.find_by_id(id)
+            movie_id = media.name.split('-')[-1][:-1]
+            if movie_id.isdigit():
+                (title, year) = self.find_by_id(movie_id)
                 if title is not None:
                     results.Append(
                         self.api.MetadataSearchResult(
@@ -115,18 +114,18 @@ class KinopoiskSource(SourceBase):
                             year=year
                         )
                     )
-                    self.continue_search = False
                     return
+
         for s in search_sources:
             s_match = {}
-            if manual or self.continue_search:
+            if manual or continue_search:
                 cnt = s(matches if manual else s_match, media)
                 self.l('%s returned %s results', s.__name__, cnt)
                 # if not manual - score each source separate
-                if not manual and self.continue_search:
+                if not manual and continue_search:
                     self.app.score.score(media, s_match)
                     if s_match.values() and max(s_match.values(), key=lambda m: m[4])[4] >= self.c.score.besthit:
-                        self.continue_search = False
+                        continue_search = False
                     for i, d in s_match.iteritems():
                         if i in matches:
                             matches[i] = d if d[4] > matches[i][4] else matches[i]
@@ -162,7 +161,6 @@ class KinopoiskSource(SourceBase):
 
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update KinopoiskSource')
-        self.meta_id = media.id
         self.load_meta(metadata)
         self.load_staff(metadata)
         self.load_similar(metadata)
@@ -233,7 +231,7 @@ class KinopoiskSource(SourceBase):
         metadata['summary'] = summary_add + movie_data.get('description', '')
 
         # main trailer
-        metadata['trailer'] = movie_data.get('videoURL',{}).get('hd','')
+        metadata['trailer'] = movie_data.get('videoURL', {}).get('hd', '')
 
     def load_staff(self, metadata):
         self.l('load staff from kinopoisk')

@@ -3,13 +3,12 @@ from base import SourceBase
 class FanArtSource(SourceBase):
     def __init__(self, app):
         super(FanArtSource, self).__init__(app)
-        self.continue_search = False
-        
+
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from FanArtSource')
         json = None
         try:
-            json = self.api.JSON.ObjectFromURL(self.c.fanart.movie % self.get_source_id('tmdb'), headers=self.c.fanart.headers(''))
+            json = self.api.JSON.ObjectFromURL(self.c.fanart.movie % self.get_source_id('tmdb', media.id), headers=self.c.fanart.headers(''))
         except:
             self.l('No data from FanArt.tv')
             

@@ -3,13 +3,12 @@ from base import SourceBase
 class FreebaseSource(SourceBase):
     def __init__(self, app):
         super(FreebaseSource, self).__init__(app)
-        self.continue_search = False
-        
+
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from FreebaseSource')
         freebase = None
-        if self.get_source_id('imdb'):
-            freebase = self._fetch_xml(self.c.freebase.base % (self.get_source_id('imdb')[2:], lang))
+        if self.get_source_id(media.id, 'imdb'):
+            freebase = self._fetch_xml(self.c.freebase.base % (self.get_source_id(media.id, 'imdb')[2:], lang))
 
         TYPE_MAP = {'primary_trailer': self.api.TrailerObject,
                     'trailer': self.api.TrailerObject,

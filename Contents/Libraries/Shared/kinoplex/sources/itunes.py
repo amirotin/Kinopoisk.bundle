@@ -5,16 +5,15 @@ import re
 class ITunesSource(SourceBase):
     def __init__(self, app):
         super(ITunesSource, self).__init__(app)
-        self.continue_search = False
 
-    def _search(self, metadata):
+    def _search(self, metadata, media):
         self.l('search from ITunesSource')
 
         # check trakt.tv for itunes link
         try:
             trakt_url = ''
             # get trakt url by imdb id
-            trakt_search = self.api.HTTP.Request(url=self.c.itunes.trakt_imdb % self.get_source_id('imdb'), method='GET', follow_redirects=False)
+            trakt_search = self.api.HTTP.Request(url=self.c.itunes.trakt_imdb % self.get_source_id(media.id, 'imdb'), method='GET', follow_redirects=False)
 
             if trakt_search.headers.get('location'):
                 trakt_url = trakt_search.headers.get('location')
@@ -42,7 +41,7 @@ class ITunesSource(SourceBase):
 
         # fast way - check rotten tomatoes
         try:
-            omdb = self.api.JSON.ObjectFromURL(self.c.itunes.omdb % self.get_source_id('imdb'))
+            omdb = self.api.JSON.ObjectFromURL(self.c.itunes.omdb % self.get_source_id(media.id, 'imdb'))
             if 'tomatoURL' in omdb and omdb['tomatoURL'] != 'N/A':
                 page = self.api.HTML.ElementFromURL(omdb['tomatoURL'].replace('http://','https://'), headers=self.c.headers.all, cacheTime=0)
                 lnk = page.xpath(self.c.itunes.rt_re)
@@ -54,13 +53,13 @@ class ITunesSource(SourceBase):
         return None
 
     def update(self, metadata, media, lang, force=False, periodic=False):
-        self.l('itunes id = %s',self.source_id)
-        if self.source_id is None:
-            self.source_id = self._search(metadata)
-
         self.l('update from ITunesSource')
-        if self.source_id:
-            movie_data = self.api.JSON.ObjectFromURL(self.c.itunes.lookup % self.source_id)
+        source_id = self.get_source_id(media.id)
+        if source_id is None:
+            source_id = self.set_source_id(self._search(metadata, media), media.id)
+
+        if source_id:
+            movie_data = self.api.JSON.ObjectFromURL(self.c.itunes.lookup % source_id)
             if 'resultCount' in movie_data and movie_data['resultCount'] > 0:
                 self.l('### iTunes selected title %s', movie_data['results'][0]['trackName'])
                 poster_url = movie_data['results'][0]['artworkUrl100'].replace('100x100bb', self.c.itunes.poster)

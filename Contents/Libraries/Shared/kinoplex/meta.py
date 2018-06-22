@@ -44,8 +44,6 @@ def parse_meta(metadata_dict, metadata, api):
             api.Log.Error('Error while setting attribute %s with value %s' % (attr_name, dict_value), exc_info=True)
 
 def prepare_meta(metadata_dict, metadata, api):
-    metadata_dict['reviews'] = metadata_dict.get('rotten_reviews')
-
     if metadata_dict.get('itunes_poster', {}):
         metadata_dict['posters'][metadata_dict['itunes_poster']['poster_url']] = (metadata_dict['itunes_poster']['thumb_url'], 1)
 
@@ -82,3 +80,12 @@ def prepare_meta(metadata_dict, metadata, api):
             meta_staff.name = staff.get('nameRU', '')
             meta_staff.photo = staff.get('photo', '')
             meta_staff.role = staff.get('role', '')
+
+    metadata.reviews.clear()
+    for review in metadata_dict.get('rotten_reviews', []):
+        r = metadata.reviews.new()
+        r.author = review.get('author')
+        r.source = review.get('source')
+        r.image = review.get('image')
+        r.link = review.get('link')
+        r.text = review.get('text')

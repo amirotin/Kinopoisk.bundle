@@ -1,5 +1,5 @@
 from os.path import split as split_path
-import shutil
+import shutil, time
 
 class Updater(object):
     def __init__(self, core, channel):
@@ -144,7 +144,10 @@ class Updater(object):
         plist_path = self._core.storage.join_path(self.stage, self.identifier, 'Contents', 'Info.plist')
         plist_data = self._core.storage.load(plist_path, binary=False)
         self._core.storage.save(plist_path, plist_data.replace('{{version}}',self.update_version), binary=False)
-        self._core.storage.utime(self._core.plist_path, None)
+        try:
+            self._core.storage.utime(self._core.plist_path, None)
+        except:
+            self._core.log.error('Error with utime function', exc_info=True)
         self.clean_old_bundle()
         if not self.activate():
             self._core.log.critical(u"Unable to activate {}".format(self.identifier))
@@ -204,7 +207,7 @@ class Updater(object):
             self._core.log.exception(u"Unable to activate {} at {}".format(self.identifier, final_path))
             if fail_count < 5:
                 self._core.log.info("Waiting 2s and trying again")
-                Thread.Sleep(2)
+                time.sleep(2)
                 return self.activate(fail_count + 1)
             else:
                 self._core.log.info("Too many failures - returning")

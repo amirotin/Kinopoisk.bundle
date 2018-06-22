@@ -30,7 +30,7 @@ class PlexHTTPSConnectionPool(urllib3.HTTPSConnectionPool):
     ResponseCls = PlexHTTPResponse
 
 def getVersion(core):
-    current_version = 'BETA1'
+    current_version = 'BETA2'
     version_path = core.storage.join_path(core.bundle_path, 'Contents', 'VERSION')
     if core.storage.file_exists(version_path):
         current_version = core.storage.load(version_path)
@@ -59,7 +59,8 @@ def setup_sentry(core, platform):
         'plexname': core.get_server_attribute('friendlyName'),
         'osversion': platform.OSVersion,
         'cpu': platform.CPU,
-        'serverversion': platform.ServerVersion
+        'serverversion': platform.ServerVersion,
+        'pluginversion': getVersion(core)
     })
     handler.setLevel(logging.ERROR)
     core.log.addHandler(handler)

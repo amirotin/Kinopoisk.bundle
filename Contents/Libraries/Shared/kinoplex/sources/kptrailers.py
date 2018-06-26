@@ -29,8 +29,21 @@ class KPTrailersSource(SourceBase):
                     'behind_the_scenes': self.api.BehindTheScenesObject,
                     'scene_or_sample': self.api.SceneOrSampleObject}
 
+        video_page = self.api.HTTP.Request(
+            self.c.kinopoisk.extras.base % metadata['id'],
+            headers=self.c.kinopoisk.main.headers(),
+            follow_redirects=False)
+
+        redirect = video_page.get_redirect_location()
+        if redirect:
+            if 'showcaptcha' in redirect:
+                redirect = redirect.replace('https://www.kinopoisk.ru/showcaptcha?cc=1&repath=', '').replace('%3A', ':')
+            else:
+                redirect = 'https://www.kinopoisk.ru%s' % redirect
+            video_page = self.api.HTTP.Request(redirect, headers=self.c.kinopoisk.main.headers())
+
         # list of trailers for movie
-        page = self.api.HTML.ElementFromURL(self.c.kinopoisk.extras.base % metadata['id'], headers=self.c.kinopoisk.main.headers)
+        page = self.api.HTML.ElementFromString(video_page.content)
 
         if len(page) != 0:
             params = {}
@@ -47,7 +60,7 @@ class KPTrailersSource(SourceBase):
             # get trailers data
             trailers = self._fetch_json(
                 self.c.kinopoisk.extras.url % self.make_request(params),
-                headers=self.c.kinopoisk.extras.headers
+                headers=self.c.kinopoisk.extras.headers()
             )
             # form extras array
             for key, trailer in trailers.iteritems():

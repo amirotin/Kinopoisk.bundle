@@ -1,4 +1,5 @@
 from collections import defaultdict
+from user_agent import generate_user_agent
 import urllib
 
 class mydict(defaultdict):
@@ -27,37 +28,36 @@ config['kinopoisk']['api']['series'] = config.kinopoisk.api.base % 'getKPSeriesL
 config['kinopoisk']['api']['hash'] = 'IDATevHDS7'
 config['kinopoisk']['api']['hash_headers'] = ['x-signature','x-timestamp']
 config['kinopoisk']['api']['headers'] = {
-    'Image-Scale': 3,
-    'countryID': 2,
-    'cityID': 1,
+    'Image-Scale': '3',
+    'countryID': '2',
+    'cityID': '1',
     'ClientId': '55decdcf6d4cd1bcaa1b3856',
     'Accept': 'application/json',
     'device': 'android',
-    'Android-Api-Version': 22,
+    'Android-Api-Version': '22',
     'User-Agent': 'Android client (4.4 / api22),ru.kinopoisk/4.2.1 (52)'
 }
 
 config['kinopoisk']['main']['search'] = 'https://www.kinopoisk.ru/search/suggest/?q=%s&topsuggest=true&ajax=1'
-config['kinopoisk']['main']['headers'] = {
+config['kinopoisk']['main']['headers'] = lambda:{
     'Host': 'www.kinopoisk.ru',
     'Accept': 'text/html, application/xhtml+xml, image/jxr, */*',
     'Accept-Encoding':'gzip, deflate',
     'Accept-Language':'en-US,en;q=0.8,ru;q=0.7,uk;q=0.5,de-DE;q=0.3,de;q=0.2',
-    'User-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko'
+    'User-agent': generate_user_agent()
 }
 
 config['kinopoisk']['main']['yasearch'] = 'https://suggest-kinopoisk.yandex.net/suggest-kinopoisk?srv=kinopoisk&part=%s&nocookiesupport=yes'
 
 config['kinopoisk']['extras']['base'] = 'https://www.kinopoisk.ru/film/%s/video/'
-config['kinopoisk']['extras']['headers'] = config.kinopoisk.main.headers
 config['kinopoisk']['extras']['re'] = "//table[ancestor::table[2]]//div[descendant::div]/a[@class='all']"
 config['kinopoisk']['extras']['url'] = 'https://widgets.kinopoisk.ru/discovery/api/trailers?params=%s'
-config['kinopoisk']['extras']['headers'] = {
+config['kinopoisk']['extras']['headers'] = lambda:{
     'X-Requested-With': 'XMLHttpRequest',
     'Accept': '*/*',
     'Accept-Encoding':'gzip, deflate, br',
     'Accept-Language':'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-    'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.167 Safari/537.36',
+    'User-Agent': generate_user_agent(),
     'DNT':'1'
 }
 config['kinopoisk']['extras']['clip_url'] = '//video.kinopoisk.ru/iframe/kinopoisk-trailers/%s'
@@ -105,6 +105,15 @@ config['tmdb']['recom'] = lambda *x: config.tmdb.base % urllib.quote_plus('/movi
 config['tmdb']['images'] = lambda *x: config.tmdb.base % urllib.quote_plus('/movie/%s/images' % x)
 config['tmdb']['ump_base'] = 'http://127.0.0.1:32400/services/ump/matches?%s'
 config['tmdb']['ump_search'] = config.tmdb.ump_base % 'type=1&title=%s&year=%s&plexHash=%s&lang=%s&manual=%s'
+
+config['tmdb']['api']['base'] = 'https://api.themoviedb.org/3%s'
+config['tmdb']['api']['key'] = ('190bcf1a7c7cbbf8074ad962ec8c8776',)
+config['tmdb']['api']['config'] = config.tmdb.api.base % '/configuration?api_key=%s' % config.tmdb.api.key
+config['tmdb']['api']['search'] = lambda *x: config.tmdb.api.base % '/search/movie?query=%s&year=%s&language=%s&include_adult=%s&api_key=%s' % (x+config.tmdb.api.key)
+config['tmdb']['api']['movie'] = lambda *x: config.tmdb.api.base % '/movie/%s?append_to_response=releases,credits,created_by,production_companies,images,alternative_titles&language=%s&include_image_language=en,ru,null&api_key=%s' % (x+config.tmdb.api.key)
+config['tmdb']['api']['recom'] = lambda *x: config.tmdb.api.base % '/movie/%s/recommendations?api_key=%s' % (x+config.tmdb.api.key)
+config['tmdb']['api']['images'] = lambda *x: config.tmdb.api.base % '/movie/%s/images?api_key=%s' % (x+config.tmdb.api.key)
+
 
 config['itunes']['base'] = 'http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/%s'
 config['itunes']['lookup'] = config.itunes.base % 'wsLookup?id=%s'

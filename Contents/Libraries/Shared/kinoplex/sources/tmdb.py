@@ -84,9 +84,10 @@ class TMDBSource(SourceBase):
             # Store the final score in the result vector.
             matches[key][5] = int(INITIAL_SCORE - dist - score_penalty)
 
-    def get_hash_results(self, meta, matches, search_type='hash', plex_hash=''):
+    def get_hash_results(self, meta, matches, search_type='hash', plex_hash='', lang='en'):
         if search_type is 'hash' and plex_hash is not None:
             url = '%s/movie/hash/%s/%s.xml' % (self.c.tmdb.hash_base, plex_hash[0:2], plex_hash)
+            url = 'https://meta.plex.tv/movie/hash/aa/aaa78d73ef2095c6ac4e533813969c128d3267ec.xml'
         else:
             if meta.get('original_title'):
                 titleyear_guid = self.titleyear_guid(meta['original_title'], meta['year'])
@@ -98,7 +99,7 @@ class TMDBSource(SourceBase):
             self.l("checking %s search vector: %s" % (search_type, url))
             res = self._fetch_xml(url)
 
-            for match in res.xpath('//match'):
+            for match in res.xpath("//match[@lang='%s']" % lang):
                 id    = "tt%s" % match.get('guid')
                 name  = self.safe_unicode(match.get('title'))
                 year  = self.safe_unicode(match.get('year'))
@@ -126,7 +127,7 @@ class TMDBSource(SourceBase):
 
     def _search(self, metadata, media, lang):
         self.l('search for TMDB id')
-
+        tmdb = self.c.tmdb.api
         result_id = None
         hash_matches = {}
         title_year_matches = {}
@@ -142,9 +143,11 @@ class TMDBSource(SourceBase):
             except: pass
 
         for plex_hash in plexHashes:
-            self.get_hash_results(metadata, hash_matches, search_type='hash', plex_hash=plex_hash)
+            self.get_hash_results(metadata, hash_matches, search_type='hash', plex_hash=plex_hash, lang=lang)
+        self.l('hash matches %s', hash_matches)
         if hash_matches:
             self.score_hash(metadata, hash_matches)
+        self.l('hash matches score %s', hash_matches)
         for key in hash_matches.keys():
             match = hash_matches[key]
             if int(match[5]) >= GOOD_SCORE:
@@ -160,7 +163,7 @@ class TMDBSource(SourceBase):
 
         search_title = 'original_title' if metadata.get('original_title') else 'title'
         search_year = metadata['year'] if metadata['originally_available_at'].year == metadata['year'] else metadata['originally_available_at'].year
-        tmdb_dict = self._fetch_json(self.c.tmdb.search(self.api.String.URLEncode(metadata.get(search_title)), search_year, lang, 'true'))
+        tmdb_dict = self._fetch_json(tmdb.search(self.api.String.URLEncode(metadata.get(search_title)), search_year, lang, 'true'))
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for i, movie in enumerate(sorted(tmdb_dict['results'], key=lambda k: k['popularity'], reverse=True)):
                 score = 100
@@ -186,7 +189,7 @@ class TMDBSource(SourceBase):
                 return best_result['id']
 
 
-        ump_dict = self._fetch_xml(self.c.tmdb.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
+        ump_dict = self._fetch_xml(tmdb.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
         for video in ump_dict.xpath('//Video'):
             try:
                 video_id = video.get('ratingKey')[video.get('ratingKey').rfind('/') + 1:]
@@ -208,20 +211,21 @@ class TMDBSource(SourceBase):
 
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from TMDBSource')
-        source_id = self.get_source_id(media.id)
-        if source_id is None:
-            source_id = self.set_source_id(self._search(metadata, media, lang), media.id)
+        tmdb = self.c.tmdb.api
+        source_id = metadata['meta_ids'].get(self.source_name)
+        if not source_id:
+            source_id = metadata['meta_ids'][self.source_name] = self._search(metadata, media, lang)
 
-        config_dict = self._fetch_json(self.c.tmdb.config)
-        movie_data = self._fetch_json(self.c.tmdb.movie(source_id, lang))
+        config_dict = self._fetch_json(tmdb.config)
+        movie_data = self._fetch_json(tmdb.movie(source_id, lang))
         if not isinstance(movie_data, dict) or 'overview' not in movie_data or movie_data['overview'] is None or movie_data['overview'] == "":
-            movie_data = self._fetch_json(self.c.tmdb.movie(source_id, ''))
+            movie_data = self._fetch_json(tmdb.movie(source_id, ''))
 
         if re.match('t*[0-9]{7}', str(source_id)):
-            self.set_source_id(movie_data.get('id'), media.id)
+            metadata['meta_ids'][movie_data.get('id')]
 
-        if self.get_source_id(media.id, 'imdb') is None and movie_data.get('imdb_id') is not None:
-            self.set_source_id(movie_data.get('imdb_id'), media.id, 'imdb')
+        if metadata['meta_ids'].get('imdb') is None and movie_data.get('imdb_id') is not None:
+            metadata['meta_ids']['imdb'] = movie_data.get('imdb_id')
 
         # Collections.
         metadata['collections'] = []

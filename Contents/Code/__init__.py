@@ -14,7 +14,7 @@ setup_sentry(Core, Platform)
 setup_network(Core, Prefs)
 
 def Start():
-    HTTP.CacheTime = 0
+    HTTP.CacheTime = 0 #CACHE_1WEEK
     HTTP.Headers['User-Agent'] = 'Plex Kinopoisk.bundle'
     if Prefs['update_channel'] != 'none':
         Thread.CreateTimer(int(Prefs['update_interval'] or 1)*60, Updater.auto_update_thread, core=Core, pref=Prefs)

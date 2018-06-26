@@ -14,6 +14,7 @@ def parse_meta(metadata_dict, metadata, api):
             continue
 
         dict_value = metadata_dict[attr_name]
+        api.Log('attr_name = %s, attr_value = %s', attr_name, dict_value)
         try:
             if isinstance(dict_value, list):
 
@@ -63,6 +64,7 @@ def prepare_meta(metadata_dict, metadata, api):
         metadata_dict['rating'] = metadata_dict.get('kp_rating')
 
     parse_meta(metadata_dict, metadata, api)
+
     for extra in metadata_dict.get('extra_clips', {}):
         metadata.extras.add(extra['extra'])
 
@@ -74,7 +76,7 @@ def prepare_meta(metadata_dict, metadata, api):
     metadata.writers.clear()
     metadata.producers.clear()
     metadata.roles.clear()
-    for staff_type, staff_list in metadata_dict.get('staff', []).items():
+    for staff_type, staff_list in metadata_dict.get('staff', {}).items():
         for staff in staff_list:
             meta_staff = getattr(metadata, staff_type).new()
             meta_staff.name = staff.get('nameRU', '')

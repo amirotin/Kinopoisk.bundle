@@ -11,28 +11,10 @@ class KinopoiskSource(SourceBase):
     def get_name(self, media):
         return self.api.String.Quote(media.name if self.app.agent_type == 'movies' else media.show, False)
 
-    def _plus_search(self, matches, media):
-        json = self._fetch_json(
-            self.c.kinopoisk.plus.search % (
-                'films' if self.app.agent_type == 'movies' else 'series', self.get_name(media)),
-            headers=self.c.kinopoisk.plus.headers
-        )
-        json = json.get('state', {}).get('movies', {})
-        cnt = 0
-        if json:
-            for i, movie in enumerate(
-                    sorted(json.values(), key=lambda k: k['ratingData'].get('rating', {}).get('votes', 0),
-                           reverse=True)):
-                if {'originalTitle', 'title', 'year'} <= set(movie) and int(
-                        movie['year'][:4]) <= self.api.Datetime.Now().year:
-                    matches[str(movie['id'])] = [movie['title'], movie['originalTitle'], int(movie['year']), i, 0]
-                    cnt = cnt + 1
-        return cnt
-
     def _suggest_search(self, matches, media):
         json = self._fetch_json(
             self.c.kinopoisk.main.yasearch % self.get_name(media),
-            headers=self.c.kinopoisk.main.headers
+            headers=self.c.kinopoisk.main.headers()
         )
         json = json[2] if 2 <= len(json) else []
         cnt = 0
@@ -52,7 +34,7 @@ class KinopoiskSource(SourceBase):
     def _main_search(self, matches, media):
         json = self._fetch_json(
             self.c.kinopoisk.main.search % self.get_name(media),
-            headers=self.c.kinopoisk.main.headers
+            headers=self.c.kinopoisk.main.headers()
         )
         cnt = 0
         if json:
@@ -180,8 +162,6 @@ class KinopoiskSource(SourceBase):
         # original title
         if 'nameEN' in movie_data and movie_data['nameEN'] != movie_data['nameRU']:
             metadata['original_title'] = movie_data['nameEN']
-        else:
-            metadata['original_title'] = ''
 
         # slogan
         metadata['tagline'] = movie_data.get('slogan', '')
@@ -201,7 +181,7 @@ class KinopoiskSource(SourceBase):
             metadata['genres'].append(genre.strip().title())
 
         # MPAA rating
-        metadata['content_rating'] = movie_data.get('ratingMPAA', '')
+        metadata['content_rating'] = movie_data.get('ratingAgeLimits', '')
 
         # originally available
         metadata['originally_available_at'] = self.api.Datetime.ParseDate(

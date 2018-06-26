@@ -8,18 +8,18 @@ class FanArtSource(SourceBase):
         self.l('update from FanArtSource')
         json = None
         try:
-            json = self.api.JSON.ObjectFromURL(self.c.fanart.movie % self.get_source_id('tmdb', media.id), headers=self.c.fanart.headers(''))
+            json = self.api.JSON.ObjectFromURL(self.c.fanart.movie % metadata['meta_ids'].get('tmdb'), headers=self.c.fanart.headers(''))
         except:
             self.l('No data from FanArt.tv')
             
         if json:
             metadata['fanart'] = dict(background=[], poster=[])
-            for key,value in json.items():
-                if isinstance(value, list) and key in ('moviebackground','movieposter'):
+            for key, value in json.items():
+                if isinstance(value, list) and key in ('moviebackground', 'movieposter'):
                     for image in value:
-                        metadata['fanart'][key.replace('movie','')].append({
+                        metadata['fanart'][key.replace('movie', '')].append({
                             'image': image['url'],
-                            'thumb': image['url'].replace('/fanart/','/preview/'),
+                            'thumb': image['url'].replace('/fanart/', '/preview/'),
                             'lang': image['lang'],
                             'likes': image['likes']
                         })

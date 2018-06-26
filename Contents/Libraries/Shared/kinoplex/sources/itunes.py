@@ -8,19 +8,18 @@ class ITunesSource(SourceBase):
 
     def _search(self, metadata, media):
         self.l('search from ITunesSource')
-
+        imdb_id = metadata['meta_ids'].get('imdb')
         # check trakt.tv for itunes link
         try:
             trakt_url = ''
             # get trakt url by imdb id
-            trakt_search = self.api.HTTP.Request(url=self.c.itunes.trakt_imdb % self.get_source_id(media.id, 'imdb'), method='GET', follow_redirects=False)
+            trakt_search = self.api.HTTP.Request(url=self.c.itunes.trakt_imdb % imdb_id, method='GET', follow_redirects=False)
 
             if trakt_search.headers.get('location'):
                 trakt_url = trakt_search.headers.get('location')
             else:
                 trakt_search = self.api.HTML.ElementFromString(trakt_search.content)
                 lnk = trakt_search.xpath(self.c.itunes.trakt_re_search)
-                self.l('lnk=%s', lnk)
                 if len(lnk) > 0:
                     trakt_url = lnk[0]
 
@@ -41,9 +40,9 @@ class ITunesSource(SourceBase):
 
         # fast way - check rotten tomatoes
         try:
-            omdb = self.api.JSON.ObjectFromURL(self.c.itunes.omdb % self.get_source_id(media.id, 'imdb'))
+            omdb = self.api.JSON.ObjectFromURL(self.c.itunes.omdb % imdb_id)
             if 'tomatoURL' in omdb and omdb['tomatoURL'] != 'N/A':
-                page = self.api.HTML.ElementFromURL(omdb['tomatoURL'].replace('http://','https://'), headers=self.c.headers.all, cacheTime=0)
+                page = self.api.HTML.ElementFromURL(omdb['tomatoURL'].replace('http://', 'https://'), headers=self.c.headers.all, cacheTime=0)
                 lnk = page.xpath(self.c.itunes.rt_re)
                 if len(lnk) > 0:
                     return re.search('(?<=id)[0-9]+', lnk[0]).group(0)
@@ -54,9 +53,10 @@ class ITunesSource(SourceBase):
 
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from ITunesSource')
-        source_id = self.get_source_id(media.id)
-        if source_id is None:
-            source_id = self.set_source_id(self._search(metadata, media), media.id)
+
+        source_id = metadata['meta_ids'].get(self.source_name)
+        if not source_id:
+            source_id = metadata['meta_ids'][self.source_name] = self._search(metadata, media)
 
         if source_id:
             movie_data = self.api.JSON.ObjectFromURL(self.c.itunes.lookup % source_id)

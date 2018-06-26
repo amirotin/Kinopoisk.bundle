@@ -39,18 +39,20 @@ def getVersion(core):
 # replace default urllib2 with faster urllib3
 def setup_network(core, prefs):
     retries = urllib3.Retry(backoff_factor=2, status_forcelist=set([500]))
-    if prefs['proxy_adr'] or prefs['proxy_type'] == 'none':
-        core.networking.pool = urllib3.PoolManager(retries=retries, maxsize=5)
-    else:
-        if prefs['proxy_type'] == 'SOCK5':
-            core.networking.pool = urllib3.SOCKSProxyManager(prefs['proxy_adr'], retries=retries, maxsize=5)
-        else:
-            core.networking.pool = urllib3.ProxyManager(prefs['proxy_adr'], retries=retries, maxsize=5)
 
+    core.networking.pool = urllib3.PoolManager(retries=retries, maxsize=5)
     core.networking.pool.pool_classes_by_scheme = {
         'http': PlexHTTPConnectionPool,
         'https': PlexHTTPSConnectionPool,
     }
+
+    if prefs['proxy_adr'] and prefs['proxy_adr'].startswith('http'):
+        if prefs['proxy_type'] == 'SOCK5':
+            core.networking.pool_proxy = SOCKSProxyManager(prefs['proxy_adr'], retries=retries, maxsize=5)
+        else:
+            core.networking.pool_proxy = urllib3.ProxyManager(prefs['proxy_adr'], retries=retries, maxsize=5)
+        core.networking.pool_proxy.pool_classes_by_scheme = core.networking.pool.pool_classes_by_scheme
+
     core.networking.http_request = MethodType(urllib3_http_request, core.networking)
 
 def setup_sentry(core, platform):
@@ -85,6 +87,10 @@ def urllib3_http_request(self, url, values=None, headers={}, cacheTime=None, enc
     if values and not data:
         data = urllib.urlencode(values)
 
+    if data:
+        cacheTime = 0
+        immediate = True
+
     url_cache = None
     if self._http_caching_enabled:
         if cacheTime > 0:
@@ -104,7 +110,7 @@ def urllib3_http_request(self, url, values=None, headers={}, cacheTime=None, enc
             del manager[url]
         else:
             self._core.log.debug("Fetching '%s' from the HTTP cache", url)
-            res = urllib3.HTTPResponse(url_cache['content'], headers=url_cache.headers)
+            res = PlexHTTPResponse(url_cache['content'], headers=url_cache.headers)
             return res
 
     h = dict(self.default_headers)
@@ -121,8 +127,12 @@ def urllib3_http_request(self, url, values=None, headers={}, cacheTime=None, enc
 
     if url.startswith(config.kinopoisk.api.base[:-2]):
         h.update({'clientDate': datetime.now().strftime("%H:%M %d.%m.%Y"), 'x-timestamp': str(int(round(time.time() * 1000)))})
-        h.update({'x-signature':self._core.data.hashing.md5(url[len(config.kinopoisk.api.base[:-2]):]+h.get('x-timestamp')+config.kinopoisk.api.hash)})
-    req = self.pool.request(method or 'GET', url, headers=h, redirect=follow_redirects, body=data)
+        h.update({'x-signature': self._core.data.hashing.md5(url[len(config.kinopoisk.api.base[:-2]):]+h.get('x-timestamp')+config.kinopoisk.api.hash)})
+
+    if url.find('http://127.0.0.1') < 0 and hasattr(self, 'pool_proxy'):
+        req = self.pool_proxy.request(method or 'GET', url, headers=h, redirect=follow_redirects, body=data)
+    else:
+        req = self.pool.request(method or 'GET', url, headers=h, redirect=follow_redirects, body=data)
 
     if url_cache != None:
         content_type = req.getheader('Content-Type', '')
@@ -139,9 +149,13 @@ def search_event(self, results, media, lang, manual=False, version=0, primary=Tr
 
 # main update function
 def update_event(self, metadata, media, lang, force=False, version=0, periodic=False):
-    metadict = dict(id=metadata.id, extras={}, posters={}, art={})
+    ids = {}
+    if self.api.Data.Exists(media.id):
+        ids = self.api.Data.LoadObject(media.id)
+    metadict = dict(id=metadata.id, extras={}, posters={}, art={}, meta_ids=ids)
     self.fire('update', metadict, media, lang, force, periodic)
     prepare_meta(metadict, metadata, self.api)
+    self.api.Data.SaveObject(media.id, metadict['meta_ids'])
 
 # class constructor
 def init_class(cls_name, cls_base, gl, version=0):

@@ -7,8 +7,9 @@ class FreebaseSource(SourceBase):
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from FreebaseSource')
         freebase = None
-        if self.get_source_id(media.id, 'imdb'):
-            freebase = self._fetch_xml(self.c.freebase.base % (self.get_source_id(media.id, 'imdb')[2:], lang))
+
+        if metadata['meta_ids'].get('imdb'):
+            freebase = self._fetch_xml(self.c.freebase.base % (metadata['meta_ids'].get('imdb')[2:], lang))
 
         TYPE_MAP = {'primary_trailer': self.api.TrailerObject,
                     'trailer': self.api.TrailerObject,
@@ -107,4 +108,4 @@ class FreebaseSource(SourceBase):
                         'text': review.text
                     })
         except Exception, e:
-            self.l('Error obtaining Rotten tomato data for %s: %s' % (self.get_source_id('imdb'), str(e)))
+            self.l('Error obtaining Rotten tomato data for %s: %s' % (metadata['meta_ids'].get('imdb'), str(e)))

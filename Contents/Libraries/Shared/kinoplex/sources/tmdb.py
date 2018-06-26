@@ -87,7 +87,6 @@ class TMDBSource(SourceBase):
     def get_hash_results(self, meta, matches, search_type='hash', plex_hash='', lang='en'):
         if search_type is 'hash' and plex_hash is not None:
             url = '%s/movie/hash/%s/%s.xml' % (self.c.tmdb.hash_base, plex_hash[0:2], plex_hash)
-            url = 'https://meta.plex.tv/movie/hash/aa/aaa78d73ef2095c6ac4e533813969c128d3267ec.xml'
         else:
             if meta.get('original_title'):
                 titleyear_guid = self.titleyear_guid(meta['original_title'], meta['year'])
@@ -162,7 +161,9 @@ class TMDBSource(SourceBase):
                 return key
 
         search_title = 'original_title' if metadata.get('original_title') else 'title'
-        search_year = metadata['year'] if metadata['originally_available_at'].year == metadata['year'] else metadata['originally_available_at'].year
+        search_year = metadata['year']
+        if metadata.get('originally_available_at'):
+            search_year = metadata['year'] if metadata['originally_available_at'].year == metadata['year'] else metadata['originally_available_at'].year
         tmdb_dict = self._fetch_json(tmdb.search(self.api.String.URLEncode(metadata.get(search_title)), search_year, lang, 'true'))
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for i, movie in enumerate(sorted(tmdb_dict['results'], key=lambda k: k['popularity'], reverse=True)):

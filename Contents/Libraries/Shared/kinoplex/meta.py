@@ -14,7 +14,6 @@ def parse_meta(metadata_dict, metadata, api):
             continue
 
         dict_value = metadata_dict[attr_name]
-        api.Log('attr_name = %s, attr_value = %s', attr_name, dict_value)
         try:
             if isinstance(dict_value, list):
 

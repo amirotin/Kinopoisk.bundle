@@ -30,12 +30,14 @@ class PlexHTTPConnectionPool(urllib3.HTTPConnectionPool):
 class PlexHTTPSConnectionPool(urllib3.HTTPSConnectionPool):
     ResponseCls = PlexHTTPResponse
 
-def getVersion(core):
+def getVersionInfo(core):
     current_version = 'BETA2'
+    current_mtime = 0
     version_path = core.storage.join_path(core.bundle_path, 'Contents', 'VERSION')
     if core.storage.file_exists(version_path):
         current_version = core.storage.load(version_path)
-    return current_version
+        current_mtime = core.storage.last_modified(version_path)
+    return current_version, current_mtime
 
 # replace default urllib2 with faster urllib3
 def setup_network(core, prefs):
@@ -63,7 +65,7 @@ def setup_sentry(core, platform):
         'osversion': platform.OSVersion,
         'cpu': platform.CPU,
         'serverversion': platform.ServerVersion,
-        'pluginversion': getVersion(core)
+        'pluginversion': getVersionInfo(core)[0]
     })
     handler.setLevel(logging.ERROR)
     core.log.addHandler(handler)

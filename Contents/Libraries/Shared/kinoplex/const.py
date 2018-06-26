@@ -126,7 +126,7 @@ config['itunes']['trakt_re_search'] = "//div[@data-type='movie']/meta[@itemprop=
 config['itunes']['trakt_streaming'] = '%s/streaming_links'
 config['itunes']['trakt_re_lnk'] = "//a[contains(@data-source,'itunes')]/attribute::href"
 
-config['itunes']['omdb'] = 'http://www.omdbapi.com/?i=%s&apikey=b59d95b3&tomatoes=true'
+config['itunes']['omdb'] = 'http://www.omdbapi.com/?i=%s&apikey=58909a96&tomatoes=true'
 config['itunes']['rt_re'] = "//section[@id='watch-it-now']//a[div/@id='itunesAffiliates']/attribute::href"
 
 config['fanart']['movie'] = 'http://webservice.fanart.tv/v3/movies/%s'

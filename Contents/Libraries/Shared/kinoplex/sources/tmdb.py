@@ -190,7 +190,7 @@ class TMDBSource(SourceBase):
                 return best_result['id']
 
 
-        ump_dict = self._fetch_xml(tmdb.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
+        ump_dict = self._fetch_xml(self.c.tmdb.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
         for video in ump_dict.xpath('//Video'):
             try:
                 video_id = video.get('ratingKey')[video.get('ratingKey').rfind('/') + 1:]

@@ -26,18 +26,24 @@ movie_schema = {
     'producers': {'type': 'dict', 'schema': 'staff'},
     'roles': {'type': 'dict', 'schema': 'staff'},
     'countries': {'type': 'dict', 'valueschema': {'type': 'string'}},
-    'posters': {'type': 'dict'},
-    'art': {'type': 'dict'},
+    'genres': {'type': 'dict', 'valueschema': {'type': 'string'}},
+    'posters': {'type': 'dict', 'schema': 'staff', 'valueschema': {'type': 'string'}},
+    'art': {'type': 'dict', 'schema': 'staff', 'valueschema': {'type': 'string'}},
     'banners': {'type': 'dict'},
     'themes': {'type': 'dict'},
     'chapters': {'type': 'dict'},
-    'extras': {'type': 'dict'},
+    'extras': {'type': 'dict', 'valueschema': {'type': 'string'}},
     'similar': {'type': 'dict', 'valueschema': {'type': 'string'}},
-    'rating': {},
-    'audience_rating': {},
-    'rating_image': {},
-    'audience_rating_image': {}
+    'rating': {'type': 'string'},
+    'audience_rating': {'type': 'string'},
+    'rating_image': {'type': 'string'},
+    'audience_rating_image': {'type': 'string'}
 }
 
 class MovieValidator(Validator):
     pass
+
+def check_meta(meta, l):
+    v = Validator()
+    v.validate(meta, movie_schema)
+    l('errors = %s', v.errors)

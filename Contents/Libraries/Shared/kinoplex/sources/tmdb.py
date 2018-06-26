@@ -223,7 +223,7 @@ class TMDBSource(SourceBase):
             movie_data = self._fetch_json(tmdb.movie(source_id, ''))
 
         if re.match('t*[0-9]{7}', str(source_id)):
-            metadata['meta_ids'][movie_data.get('id')]
+            metadata['meta_ids']['tmdb'] = movie_data.get('id')
 
         if metadata['meta_ids'].get('imdb') is None and movie_data.get('imdb_id') is not None:
             metadata['meta_ids']['imdb'] = movie_data.get('imdb_id')

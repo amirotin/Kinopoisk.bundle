@@ -2,6 +2,7 @@
 from kinoplex.agent import KinoPlex
 from kinoplex.const import config
 from kinoplex.meta import prepare_meta
+from kinoplex.meta_new import check_meta
 
 from collections import namedtuple
 from datetime import datetime

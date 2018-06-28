@@ -2,7 +2,6 @@
 from kinoplex.agent import KinoPlex
 from kinoplex.const import config
 from kinoplex.meta import prepare_meta
-from kinoplex.meta_new import check_meta
 
 from collections import namedtuple
 from datetime import datetime
@@ -59,7 +58,7 @@ def setup_network(core, prefs):
     core.networking.http_request = MethodType(urllib3_http_request, core.networking)
 
 def setup_sentry(core, platform):
-    handler = SentryHandler('https://9085bc55cd6a4dc1a8fe3b231e6ac9ae:5dace4d4c92e42d0b9cc972fcd321722@sentry.io/202380', tags={
+    handler = SentryHandler('https://5a974a896d6b4d208ca70d600814d942@sentry.io/202380', tags={
         'os': platform.OS,
         'plexname': core.get_server_attribute('friendlyName'),
         'osversion': platform.OSVersion,
@@ -155,7 +154,7 @@ def update_event(self, metadata, media, lang, force=False, version=0, periodic=F
     ids = {}
     if self.api.Data.Exists(media.id):
         ids = self.api.Data.LoadObject(media.id)
-    metadict = dict(id=metadata.id, extras={}, posters={}, art={}, meta_ids=ids)
+    metadict = dict(id=metadata.id, meta_ids=ids)
     self.fire('update', metadict, media, lang, force, periodic)
     prepare_meta(metadict, metadata, self.api)
     self.api.Data.SaveObject(media.id, metadict['meta_ids'])

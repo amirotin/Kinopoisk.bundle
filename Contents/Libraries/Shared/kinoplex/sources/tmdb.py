@@ -169,7 +169,7 @@ class TMDBSource(SourceBase):
             for i, movie in enumerate(sorted(tmdb_dict['results'], key=lambda k: k['popularity'], reverse=True)):
                 score = 100
                 score = score - abs(self.api.String.LevenshteinDistance(movie[search_title].lower(), metadata.get(search_title)))
-                score = score - (5 * i)
+                score = score - (2 * i)
 
                 if 'release_date' in movie and movie['release_date']:
                     release_year = int(movie['release_date'].split('-')[0])
@@ -184,6 +184,7 @@ class TMDBSource(SourceBase):
                     else:
                         score = score - year_delta * per_year_penalty
                 movie['score'] = score
+            self.l('tmdb_dict = %s', tmdb_dict)
             best_result = max(tmdb_dict.get('results') or [{'score':0}], key=lambda x:x['score'])
             if best_result['score'] >= GOOD_SCORE:
                 self.l('best_result = %s', best_result)
@@ -253,12 +254,11 @@ class TMDBSource(SourceBase):
             metadata['tmdb_posters'] = {}
             movie_images = movie_data.get('images', {})
             if movie_images.get('posters'):
-                max_average = max([(lambda p: p['vote_average'] or 5)(p) for p in movie_images['posters']])
+                max_average = max([(lambda p: float(p['vote_average'] or 5))(p) for p in movie_images['posters']])
                 max_count = max([(lambda p: p['vote_count'])(p) for p in movie_images['posters']]) or 1
 
                 for i, poster in enumerate(movie_images['posters']):
-
-                    score = (poster['vote_average'] / max_average) * POSTER_SCORE_RATIO
+                    score = (float(poster['vote_average']) / max_average) * POSTER_SCORE_RATIO
                     score += (poster['vote_count'] / max_count) * (1 - POSTER_SCORE_RATIO)
                     movie_images['posters'][i]['score'] = score
 
@@ -282,12 +282,12 @@ class TMDBSource(SourceBase):
             valid_names = list()
             metadata['tmdb_art'] = {}
             if movie_images.get('backdrops'):
-                max_average = max([(lambda p: p['vote_average'] or 5)(p) for p in movie_images['backdrops']])
+                max_average = max([(lambda p: float(p['vote_average'] or 5))(p) for p in movie_images['backdrops']])
                 max_count = max([(lambda p: p['vote_count'])(p) for p in movie_images['backdrops']]) or 1
 
                 for i, backdrop in enumerate(movie_images['backdrops']):
 
-                    score = (backdrop['vote_average'] / max_average) * BACKDROP_SCORE_RATIO
+                    score = (float(backdrop['vote_average']) / max_average) * BACKDROP_SCORE_RATIO
                     score += (backdrop['vote_count'] / max_count) * (1 - BACKDROP_SCORE_RATIO)
                     movie_images['backdrops'][i]['score'] = score
 

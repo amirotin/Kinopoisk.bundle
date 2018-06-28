@@ -1,13 +1,52 @@
 [
   {
-    "id":"sentry",
-    "label":"Включить передачу ошибок в Sentry",
+    "id": "ratings",
+    "label": "Приоритетный источник рейтингов: ",
+    "type": "enum",
+    "values": [
+      "Kinopoisk",
+      "Rotten Tomatoes",
+      "IMDb",
+      "The Movie Database"
+    ],
+    "default": "Rotten Tomatoes"
+  },
+  {
+    "id": "reviews",
+    "label": "Источник рецензий: ",
+    "type": "enum",
+    "values": [
+      "Kinopoisk",
+      "Rotten Tomatoes"
+    ],
+    "default": "Kinopoisk"
+  },
+  {
+    "id": "trailers",
+    "label": "Источник трейлеров: ",
+    "type": "enum",
+    "values": [
+      "Kinopoisk",
+      "IVA",
+      "All"
+    ],
+    "default": "Kinopoisk"
+  },
+  {
+    "id": "extra_all",
+    "label": "Грузить все видеоматериалы (сцены, интервью, ...)",
     "type":"bool",
     "default":"true"
   },
   {
-    "id":"debug",
-    "label":"Включить отладку в логах плагина",
+    "id": "actors_eng",
+    "label": "Имена актеров на английском",
+    "type":"bool",
+    "default":"false"
+  },
+  {
+    "id":"sentry",
+    "label":"Включить передачу ошибок в Sentry",
     "type":"bool",
     "default":"true"
   },
@@ -50,18 +89,5 @@
     "label":"Включить канал для плагина",
     "type":"bool",
     "default":"true"
-  },
-  {
-    "id": "ratings",
-    "label": "Ratings Source: ",
-    "type": "enum",
-    "values": [
-      "Kinopoisk",
-      "Rotten Tomatoes",
-      "IMDb",
-      "The Movie Database"
-    ],
-    "default": "Rotten Tomatoes"
-  },
-
+  }
 ]

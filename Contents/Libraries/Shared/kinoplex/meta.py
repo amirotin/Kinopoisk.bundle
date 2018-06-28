@@ -1,3 +1,104 @@
+from cerberus import Validator, schema_registry
+
+schema_registry.add(
+    'staff',
+    {
+        'staff_type': {'type': 'string', 'allowed': ['directors', 'writers', 'producers', 'roles']},
+        'name': {'type': 'string'},
+        'photo': {'type': 'string'},
+        'role': {'type': 'string'},
+    }
+)
+
+movie_schema = {
+    'id': {'type': 'string'},
+    'meta_ids': {'type': 'dict'},
+    'title': {'type': 'string'},
+    'original_title': {'type': 'string', 'default_setter': lambda doc: doc['title']},
+    'year': {'type': 'integer'},
+    'originally_available_at': {'type': 'date'},
+    'studio': {'type': 'string'},
+    'tagline': {'type': 'string'},
+    'summary': {'type': 'string'},
+    'trivia': {'type': 'string'},
+    'quotes': {'type': 'string'},
+    'content_rating': {'type': 'string'},
+    'content_rating_age': {'type': 'integer'},
+    'writers': {'type': 'dict', 'schema': 'staff'},
+    'directors': {'type': 'dict', 'schema': 'staff'},
+    'producers': {'type': 'dict', 'schema': 'staff'},
+    'roles': {'type': 'dict', 'schema': 'staff'},
+    'countries': {'type': 'list', 'valueschema': {'type': 'string'}},
+    'genres': {'type': 'list', 'valueschema': {'type': 'string'}},
+    'posters': {'type': 'dict', 'default_setter': 'posters'},
+    'art': {'type': 'dict', 'default_setter': 'art'},
+    'banners': {'type': 'dict'},
+    'themes': {'type': 'dict'},
+    'chapters': {'type': 'dict'},
+    'collections': {'type': 'list', 'valueschema': {'type': 'string'}},
+    'reviews': {'type': 'list', 'default_setter': 'reviews'},
+    'clips': {'type': 'dict', 'default_setter': 'clips'},
+    'similar': {'type': 'list', 'valueschema': {'type': 'string'}},
+    'rating': {'type': 'float', 'default_setter': 'rating'},
+    'audience_rating': {'type': 'string'},
+    'rating_image': {'type': 'string'},
+    'audience_rating_image': {'type': 'string'}
+}
+
+class MovieValidator(Validator):
+    def __init__(self, *args, **kwargs):
+        super(MovieValidator, self).__init__(*args, **kwargs)
+        self.api = kwargs.get('api')
+
+    def _normalize_default_setter_clips(self, document):
+        extras = []
+        self.api.Log('trailers pref = %s', self.api.Prefs['trailers'].strip())
+        if self.api.Prefs['trailers'].strip() == "Kinopoisk" or self.api.Prefs['trailers'].strip() == "All":
+            extras += document.get('kp_extras', [])
+        if self.api.Prefs['trailers'].strip() == "IVA" or self.api.Prefs['trailers'].strip() == "All":
+            extras += document.get('iva_extras', [])
+
+        if self.api.Prefs['extra_all']:
+            return extras
+
+        return filter(lambda x: x['type'] in set(['trailer', 'primary_trailer']), extras)
+
+    def _normalize_default_setter_posters(self, document):
+        posters = {}
+        if document.get('itunes_poster', {}):
+            posters[document['itunes_poster']['poster_url']] = (document['itunes_poster']['thumb_url'], 1)
+
+        for image, thumb in document.get('tmdb_posters', {}).iteritems():
+            posters[image] = (thumb[0], thumb[1]+1)
+
+        return posters
+
+    def _normalize_default_setter_art(self, document):
+        art = {}
+        for image, thumb in document.get('tmdb_art', {}).iteritems():
+            art[image] = thumb
+
+        return art
+
+    def _normalize_default_setter_reviews(self, document):
+        if self.api.Prefs['reviews'].strip() == 'Rotten Tomatoes' and document.get('rotten_reviews'):
+            return document.get('rotten_reviews')
+        else:
+            return document.get('kp_reviews')
+
+    def _normalize_default_setter_rating(self, document):
+        rating_source = {
+            'Rotten Tomatoes'   : document.get('rt_ratings', {}).get('rating'),
+            'IMDb'              : document.get('imdb_rating'),
+            'The Movie Database': document.get('tmbp_rating'),
+            'Kinopoisk'         : document.get('kp_rating')
+        }
+        rating = rating_source[self.api.Prefs['ratings'].strip()]
+        if rating:
+            return rating
+
+        return rating_source['IMDb'] if rating_source['IMDb'] else rating_source['The Movie Database'] if rating_source['The Movie Database'] else rating_source['Kinopoisk']
+
 def parse_meta(metadata_dict, metadata, api):
     try:
         if not metadata or not metadata.attrs:
@@ -44,30 +145,15 @@ def parse_meta(metadata_dict, metadata, api):
             api.Log.Error('Error while setting attribute %s with value %s' % (attr_name, dict_value), exc_info=True)
 
 def prepare_meta(metadata_dict, metadata, api):
-    if metadata_dict.get('itunes_poster', {}):
-        metadata_dict['posters'][metadata_dict['itunes_poster']['poster_url']] = (metadata_dict['itunes_poster']['thumb_url'], 1)
-
-    for poster, thumb in metadata_dict.get('tmdb_posters', {}).iteritems():
-        metadata_dict['posters'][poster] = (thumb[0], thumb[1]+1)
-
-    for art, thumb in metadata_dict.get('tmdb_art', {}).iteritems():
-        metadata_dict['art'][art] = thumb
-
-    if api.Prefs['ratings'].strip() == 'Rotten Tomatoes' and metadata_dict.get('rt_raings'):
-        metadata_dict.update(metadata_dict['rt_raings'])
-    elif api.Prefs['ratings'].strip() == 'IMDb' and metadata_dict.get('imdb_rating'):
-        metadata_dict['rating'] = metadata_dict['imdb_rating']
-    elif api.Prefs['ratings'].strip() == 'The Movie Database' and metadata_dict.get('tmbp_rating'):
-        metadata_dict['rating'] = metadata_dict['tmbp_rating']
-    else:
-        metadata_dict['rating'] = metadata_dict.get('kp_rating')
+    v = MovieValidator(api=api)
+    metadata_dict = v.normalized(metadata_dict, movie_schema, always_return_document=True)
+    v.validate(metadata_dict, movie_schema)
+    api.Log('normalized metadata = %s', metadata_dict)
+    api.Log('metadata errors = %s', v.errors)
 
     parse_meta(metadata_dict, metadata, api)
 
-    for extra in metadata_dict.get('extra_clips', {}):
-        metadata.extras.add(extra['extra'])
-
-    for extra in metadata_dict.get('iva_extras', {}):
+    for extra in metadata_dict.get('clips', {}):
         metadata.extras.add(extra['extra'])
 
     # staff
@@ -78,12 +164,15 @@ def prepare_meta(metadata_dict, metadata, api):
     for staff_type, staff_list in metadata_dict.get('staff', {}).items():
         for staff in staff_list:
             meta_staff = getattr(metadata, staff_type).new()
-            meta_staff.name = staff.get('nameRU', '')
+            if api.Prefs['actors_eng'] and staff.get('nameEN'):
+                meta_staff.name = staff.get('nameEN', '')
+            else:
+                meta_staff.name = staff.get('nameRU', '')
             meta_staff.photo = staff.get('photo', '')
             meta_staff.role = staff.get('role', '')
 
     metadata.reviews.clear()
-    for review in metadata_dict.get('rotten_reviews', []):
+    for review in metadata_dict.get('reviews', []):
         r = metadata.reviews.new()
         r.author = review.get('author')
         r.source = review.get('source')

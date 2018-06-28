@@ -17,8 +17,9 @@ class FreebaseSource(SourceBase):
                     'behind_the_scenes': self.api.BehindTheScenesObject,
                     'scene_or_sample': self.api.SceneOrSampleObject}
 
-        extras = []
+
         if freebase:
+            extras = []
             self.l('Parsing IVA extras')
             for extra in freebase.xpath('//extra'):
                 avail = self.api.Datetime.ParseDate(extra.get('originally_available_at'))
@@ -54,58 +55,58 @@ class FreebaseSource(SourceBase):
                                                                     year=avail.year,
                                                                     originally_available_at=avail,
                                                                     thumb=extra.get('thumb') or '')})
-        metadata['iva_extras'] = extras
+            metadata['iva_extras'] = extras
 
-        try:
-            # Ratings.
-            if freebase.xpath('rating') is not None:
+            try:
+                # Ratings.
+                if freebase.xpath('rating') is not None:
 
-                rating_image_identifiers = {
-                    'Certified Fresh': 'rottentomatoes://image.rating.certified',
-                    'Fresh': 'rottentomatoes://image.rating.ripe',
-                    'Ripe': 'rottentomatoes://image.rating.ripe',
-                    'Rotten': 'rottentomatoes://image.rating.rotten',
-                    None: ''
-                }
-                audience_rating_image_identifiers = {
-                    'Upright': 'rottentomatoes://image.rating.upright',
-                    'Spilled': 'rottentomatoes://image.rating.spilled',
-                    None: ''
-                }
+                    rating_image_identifiers = {
+                        'Certified Fresh': 'rottentomatoes://image.rating.certified',
+                        'Fresh': 'rottentomatoes://image.rating.ripe',
+                        'Ripe': 'rottentomatoes://image.rating.ripe',
+                        'Rotten': 'rottentomatoes://image.rating.rotten',
+                        None: ''
+                    }
+                    audience_rating_image_identifiers = {
+                        'Upright': 'rottentomatoes://image.rating.upright',
+                        'Spilled': 'rottentomatoes://image.rating.spilled',
+                        None: ''
+                    }
 
-                ratings = freebase.xpath('//ratings')
-                rt_ratings = metadata['rt_raings'] = {}
-                if ratings:
-                    ratings = ratings[0]
-                    try:
-                        rt_ratings['rating'] = float(ratings.get('critics_score', 0.0)) / 10
-                    except TypeError:
-                        rt_ratings['rating'] = 0.0
+                    ratings = freebase.xpath('//ratings')
+                    rt_ratings = metadata['rt_raings'] = {}
+                    if ratings:
+                        ratings = ratings[0]
+                        try:
+                            rt_ratings['rating'] = float(ratings.get('critics_score', 0.0)) / 10
+                        except TypeError:
+                            rt_ratings['rating'] = 0.0
 
-                    try:
-                        rt_ratings['audience_rating'] = float(ratings.get('audience_score', 0.0)) / 10
-                    except:
-                        rt_ratings['audience_rating'] = 0.0
+                        try:
+                            rt_ratings['audience_rating'] = float(ratings.get('audience_score', 0.0)) / 10
+                        except:
+                            rt_ratings['audience_rating'] = 0.0
 
-                    try:
-                        rt_ratings['rating_image'] = rating_image_identifiers[ratings.get('critics_rating', None)]
-                    except KeyError:
-                        rt_ratings['rating_image'] = ''
+                        try:
+                            rt_ratings['rating_image'] = rating_image_identifiers[ratings.get('critics_rating', None)]
+                        except KeyError:
+                            rt_ratings['rating_image'] = ''
 
-                    try:
-                        rt_ratings['audience_rating_image'] = audience_rating_image_identifiers[ratings.get('audience_rating', None)]
-                    except KeyError:
-                        rt_ratings['audience_rating_image'] = ''
+                        try:
+                            rt_ratings['audience_rating_image'] = audience_rating_image_identifiers[ratings.get('audience_rating', None)]
+                        except KeyError:
+                            rt_ratings['audience_rating_image'] = ''
 
-            metadata['rotten_reviews'] = []
-            for review in freebase.xpath('//review'):
-                if review.text not in [None, False, '']:
-                    metadata['rotten_reviews'].append({
-                        'author': review.get('critic'),
-                        'source': review.get('publication'),
-                        'image': 'rottentomatoes://image.review.fresh' if review.get('freshness') == 'fresh' else 'rottentomatoes://image.review.rotten',
-                        'link': review.get('link'),
-                        'text': review.text
-                    })
-        except Exception, e:
-            self.l('Error obtaining Rotten tomato data for %s: %s' % (metadata['meta_ids'].get('imdb'), str(e)))
+                metadata['rotten_reviews'] = []
+                for review in freebase.xpath('//review'):
+                    if review.text not in [None, False, '']:
+                        metadata['rotten_reviews'].append({
+                            'author': review.get('critic'),
+                            'source': review.get('publication'),
+                            'image': 'rottentomatoes://image.review.fresh' if review.get('freshness') == 'fresh' else 'rottentomatoes://image.review.rotten',
+                            'link': review.get('link'),
+                            'text': review.text
+                        })
+            except Exception, e:
+                self.l('Error obtaining Rotten tomato data for %s: %s' % (metadata['meta_ids'].get('imdb'), str(e)))

@@ -76,4 +76,4 @@ class KPTrailersSource(SourceBase):
                             thumb='https:' + trailer['img'].get('bigPreviewUrl', {}).get('x1', '')
                         )
                     })
-        metadata['extra_clips'] = sorted(extras, key=lambda x: (TYPE_ORDER.index(x['type']), x['views']), reverse=True)
+        metadata['kp_extras'] = sorted(extras, key=lambda x: (TYPE_ORDER.index(x['type']), x['views']), reverse=True)

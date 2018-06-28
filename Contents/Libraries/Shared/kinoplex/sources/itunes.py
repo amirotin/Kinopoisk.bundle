@@ -10,44 +10,45 @@ class ITunesSource(SourceBase):
         self.l('search from ITunesSource')
         imdb_id = metadata['meta_ids'].get('imdb')
         # check trakt.tv for itunes link
-        try:
-            trakt_url = ''
-            # get trakt url by imdb id
-            trakt_search = self.api.HTTP.Request(url=self.c.itunes.trakt_imdb % imdb_id, method='GET', follow_redirects=False)
+        if imdb_id:
+            try:
+                trakt_url = ''
+                # get trakt url by imdb id
+                trakt_search = self.api.HTTP.Request(url=self.c.itunes.trakt_imdb % imdb_id, method='GET', follow_redirects=False)
 
-            if trakt_search.headers.get('location'):
-                trakt_url = trakt_search.headers.get('location')
-            else:
-                trakt_search = self.api.HTML.ElementFromString(trakt_search.content)
-                lnk = trakt_search.xpath(self.c.itunes.trakt_re_search)
-                if len(lnk) > 0:
-                    trakt_url = lnk[0]
-
-            if trakt_url:
-                # load trakt streaming page for movie
-                trakt_page = self.api.HTML.ElementFromURL(self.c.itunes.trakt_streaming % trakt_url, headers=self.c.headers.all, cacheTime=0)
-                if trakt_page:
-                    # search for itunes link
-                    lnk = trakt_page.xpath(self.c.itunes.trakt_re_lnk)
+                if trakt_search.headers.get('location'):
+                    trakt_url = trakt_search.headers.get('location')
+                else:
+                    trakt_search = self.api.HTML.ElementFromString(trakt_search.content)
+                    lnk = trakt_search.xpath(self.c.itunes.trakt_re_search)
                     if len(lnk) > 0:
-                        # fetch itunes store link from trakt
-                        itunes_lnk = self.api.HTTP.Request(url=self.c.itunes.trakt_base % lnk[0], method='HEAD', follow_redirects=False)
-                        # parse for id in url
-                        id = re.search('(?<=id)[0-9]+', itunes_lnk.headers.get('location')).group(0)
-                        return id
-        except:
-            self.l('No itunes link on trakt.tv page')
+                        trakt_url = lnk[0]
 
-        # fast way - check rotten tomatoes
-        try:
-            omdb = self.api.JSON.ObjectFromURL(self.c.itunes.omdb % imdb_id)
-            if 'tomatoURL' in omdb and omdb['tomatoURL'] != 'N/A':
-                page = self.api.HTML.ElementFromURL(omdb['tomatoURL'].replace('http://', 'https://'), headers=self.c.headers.all, cacheTime=0)
-                lnk = page.xpath(self.c.itunes.rt_re)
-                if len(lnk) > 0:
-                    return re.search('(?<=id)[0-9]+', lnk[0]).group(0)
-        except:
-            self.l('No itunes link on rottentomatoes')
+                if trakt_url:
+                    # load trakt streaming page for movie
+                    trakt_page = self.api.HTML.ElementFromURL(self.c.itunes.trakt_streaming % trakt_url, headers=self.c.headers.all, cacheTime=0)
+                    if trakt_page:
+                        # search for itunes link
+                        lnk = trakt_page.xpath(self.c.itunes.trakt_re_lnk)
+                        if len(lnk) > 0:
+                            # fetch itunes store link from trakt
+                            itunes_lnk = self.api.HTTP.Request(url=self.c.itunes.trakt_base % lnk[0], method='HEAD', follow_redirects=False)
+                            # parse for id in url
+                            id = re.search('(?<=id)[0-9]+', itunes_lnk.headers.get('location')).group(0)
+                            return id
+            except:
+                self.l('No itunes link on trakt.tv page')
+
+            # fast way - check rotten tomatoes
+            try:
+                omdb = self.api.JSON.ObjectFromURL(self.c.itunes.omdb % imdb_id)
+                if 'tomatoURL' in omdb and omdb['tomatoURL'] != 'N/A':
+                    page = self.api.HTML.ElementFromURL(omdb['tomatoURL'].replace('http://', 'https://'), headers=self.c.headers.all, cacheTime=0)
+                    lnk = page.xpath(self.c.itunes.rt_re)
+                    if len(lnk) > 0:
+                        return re.search('(?<=id)[0-9]+', lnk[0]).group(0)
+            except:
+                self.l('No itunes link on rottentomatoes')
 
         return None
 

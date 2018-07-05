@@ -89,5 +89,11 @@
     "label":"Включить канал для плагина",
     "type":"bool",
     "default":"true"
+  },
+  {
+    "id":"debug",
+    "label":"Включить подробную отладку",
+    "type":"bool",
+    "default":"false"
   }
 ]

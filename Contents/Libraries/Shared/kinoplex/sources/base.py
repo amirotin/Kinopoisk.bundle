@@ -12,6 +12,12 @@ class SourceBase(object):
     def getAll(cls, *args, **kwargs):
         return [subclass for subclass in cls.__subclasses__()]
 
+    def d(self, *args):
+        if self.api.Prefs['debug']:
+            args = list(args)
+            args[0] = '#### %s' % args[0]
+            self.l.Debug(*args)
+
     def search(self, results, media, lang, manual=False, primary=True):
         pass
 

@@ -37,7 +37,7 @@ movie_schema = {
     'chapters': {'type': 'dict'},
     'collections': {'type': 'list', 'valueschema': {'type': 'string'}},
     'reviews': {'type': 'list', 'default_setter': 'reviews'},
-    'clips': {'type': 'dict', 'default_setter': 'clips'},
+    'clips': {'type': 'list', 'default_setter': 'clips'},
     'similar': {'type': 'list', 'valueschema': {'type': 'string'}},
     'rating': {'type': 'float', 'default_setter': 'rating'},
     'audience_rating': {'type': 'string'},
@@ -145,7 +145,7 @@ def parse_meta(metadata_dict, metadata, api):
             api.Log.Error('Error while setting attribute %s with value %s' % (attr_name, dict_value), exc_info=True)
 
 def prepare_meta(metadata_dict, metadata, api):
-    v = MovieValidator(api=api)
+    v = MovieValidator(api=api, allow_unknown = True)
     metadata_dict = v.normalized(metadata_dict, movie_schema, always_return_document=True)
     v.validate(metadata_dict, movie_schema)
     api.Log('normalized metadata = %s', metadata_dict)

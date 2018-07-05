@@ -125,50 +125,14 @@ class TMDBSource(SourceBase):
         except Exception, e:
             self.l("freebase/proxy %s lookup failed: %s" % (search_type, str(e)))
 
-    def _search(self, metadata, media, lang):
-        self.l('search for TMDB id')
+    def get_tmdb_search(self, metadata, search_title, search_year, lang):
         tmdb = self.c.tmdb.api
-        result_id = None
-        hash_matches = {}
-        title_year_matches = {}
-        api_matches = {}
-        movies_data = {}
-        plexHashes = []
-        try:
-            for item in media.items:
-                for part in item.parts:
-                    if part.hash: plexHashes.append(part.hash)
-        except:
-            try: plexHashes.append(media.hash)
-            except: pass
-
-        for plex_hash in plexHashes:
-            self.get_hash_results(metadata, hash_matches, search_type='hash', plex_hash=plex_hash, lang=lang)
-        self.l('hash matches %s', hash_matches)
-        if hash_matches:
-            self.score_hash(metadata, hash_matches)
-        for key in hash_matches.keys():
-            match = hash_matches[key]
-            if int(match[5]) >= GOOD_SCORE:
-                return key
-
-        self.get_hash_results(metadata, title_year_matches, search_type='title/year')
-        self.l('title_year_matches = %s', title_year_matches)
-        self.score_hash(metadata, title_year_matches)
-        for key in title_year_matches.keys():
-            match = title_year_matches[key]
-            if int(match[5]) >= GOOD_SCORE:
-                return key
-
-        search_title = 'original_title' if metadata.get('original_title') else 'title'
-        search_year = metadata['year']
-        if metadata.get('originally_available_at'):
-            search_year = metadata['year'] if metadata['originally_available_at'].year == metadata['year'] else metadata['originally_available_at'].year
         tmdb_dict = self._fetch_json(tmdb.search(self.api.String.URLEncode(metadata.get(search_title)), search_year, lang, 'true'))
+
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for i, movie in enumerate(sorted(tmdb_dict['results'], key=lambda k: k['popularity'], reverse=True)):
                 score = 100
-                score = score - abs(self.api.String.LevenshteinDistance(movie[search_title].lower(), metadata.get(search_title)))
+                score = score - abs(self.api.String.LevenshteinDistance(movie['title'].lower(), metadata.get(search_title)))
                 score = score - (2 * i)
 
                 if 'release_date' in movie and movie['release_date']:
@@ -184,13 +148,66 @@ class TMDBSource(SourceBase):
                     else:
                         score = score - year_delta * per_year_penalty
                 movie['score'] = score
-            self.l('tmdb_dict = %s', tmdb_dict)
-            best_result = max(tmdb_dict.get('results') or [{'score':0}], key=lambda x:x['score'])
+        return tmdb_dict
+
+    def _search(self, metadata, media, lang):
+        self.l('search for TMDB id')
+        hash_matches = {}
+        title_year_matches = {}
+        search_matches = {}
+        plexHashes = []
+        try:
+            for item in media.items:
+                for part in item.parts:
+                    if part.hash: plexHashes.append(part.hash)
+        except:
+            try: plexHashes.append(media.hash)
+            except: pass
+
+        self.d('HASH CHECK')
+        for plex_hash in plexHashes:
+            self.get_hash_results(metadata, hash_matches, search_type='hash', plex_hash=plex_hash, lang=lang)
+        self.score_hash(metadata, hash_matches)
+        for key in hash_matches.keys():
+            match = hash_matches[key]
+            self.d("Found hash match: %s (%s) score=%d, key=%s" % (match[1], match[2], match[5], key))
+            if int(match[5]) >= GOOD_SCORE:
+                return key
+
+        self.d('TITLE/YEAR CHECK')
+        self.get_hash_results(metadata, title_year_matches, search_type='title/year')
+        self.score_hash(metadata, title_year_matches)
+        for key in title_year_matches.keys():
+            match = title_year_matches[key]
+            self.d("Found title/year match: %s (%s) score=%d, key=%s" % (match[1], match[2], match[5], key))
+            if int(match[5]) >= GOOD_SCORE:
+                return key
+
+        search_year = metadata['year']
+        if metadata.get('originally_available_at'):
+            search_year = metadata['year'] if metadata['originally_available_at'].year == metadata['year'] else metadata['originally_available_at'].year
+
+        self.d('TITLE SEARCH')
+        tmdb_dict = self.get_tmdb_search(metadata, 'title', search_year, lang)
+        if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
+            for m in tmdb_dict.get('results', []):
+                self.d("Found title search match: %s (%s) score=%d, key=%s" % (m['title'], m['release_date'], m['score'], m['id']))
+            best_result = max(tmdb_dict.get('results') or [{'score': 0}], key=lambda x: x['score'])
             if best_result['score'] >= GOOD_SCORE:
-                self.l('best_result = %s', best_result)
                 return best_result['id']
 
+        if metadata.get('original_title'):
+            self.d('ORIGINAL TITLE SEARCH')
+            tmdb_dict = self.get_tmdb_search(metadata, 'original_title', search_year, lang)
+            if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
+                for m in tmdb_dict.get('results', []):
+                    self.d("Found original title search match: %s (%s) score=%d, key=%s" % (m['title'], m['release_date'], m['score'], m['id']))
+                best_result = max(tmdb_dict.get('results') or [{'score': 0}], key=lambda x: x['score'])
+                if best_result['score'] >= GOOD_SCORE:
+                    return best_result['id']
 
+        self.d('UMP SEARCH')
+        search_title = 'original_title' if metadata.get('original_title') else 'title'
         ump_dict = self._fetch_xml(self.c.tmdb.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
         for video in ump_dict.xpath('//Video'):
             try:
@@ -207,6 +224,7 @@ class TMDBSource(SourceBase):
             year = None
             try: year = int(video.get('year'))
             except: pass
+            self.d("Found ump search match: %s (%s) score=%d, key=%s" % (video.get('title'), video.get('year'), score, video_id))
             if score >= GOOD_SCORE:
                 return video_id
 

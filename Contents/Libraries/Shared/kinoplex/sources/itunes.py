@@ -12,6 +12,7 @@ class ITunesSource(SourceBase):
         # check trakt.tv for itunes link
         if imdb_id:
             try:
+                self.d('search for itunes on trakt.tv')
                 trakt_url = ''
                 # get trakt url by imdb id
                 trakt_search = self.api.HTTP.Request(url=self.c.itunes.trakt_imdb % imdb_id, method='GET', follow_redirects=False)
@@ -41,6 +42,7 @@ class ITunesSource(SourceBase):
 
             # fast way - check rotten tomatoes
             try:
+                self.d('search for itunes on rottentomatoes')
                 omdb = self.api.JSON.ObjectFromURL(self.c.itunes.omdb % imdb_id)
                 if 'tomatoURL' in omdb and omdb['tomatoURL'] != 'N/A':
                     page = self.api.HTML.ElementFromURL(omdb['tomatoURL'].replace('http://', 'https://'), headers=self.c.headers.all, cacheTime=0)
@@ -62,7 +64,6 @@ class ITunesSource(SourceBase):
         if source_id:
             movie_data = self.api.JSON.ObjectFromURL(self.c.itunes.lookup % source_id)
             if 'resultCount' in movie_data and movie_data['resultCount'] > 0:
-                self.l('### iTunes selected title %s', movie_data['results'][0]['trackName'])
                 poster_url = movie_data['results'][0]['artworkUrl100'].replace('100x100bb', self.c.itunes.poster)
                 thumb_url = movie_data['results'][0]['artworkUrl100'].replace('100x100bb', self.c.itunes.preview)
                 metadata['itunes_poster'] = {

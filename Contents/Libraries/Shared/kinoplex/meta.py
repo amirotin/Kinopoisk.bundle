@@ -65,11 +65,25 @@ class MovieValidator(Validator):
 
     def _normalize_default_setter_posters(self, document):
         posters = {}
-        if document.get('itunes_poster', {}):
-            posters[document['itunes_poster']['poster_url']] = (document['itunes_poster']['thumb_url'], 1)
+        tmdb_posters = document.get('tmdb_posters', {})
+        tmdb_ru = any(d[2] == 'ru' for l, d in tmdb_posters.iteritems())
+        cnt = 0
 
-        for image, thumb in document.get('tmdb_posters', {}).iteritems():
-            posters[image] = (thumb[0], thumb[1]+1)
+        if self.api.Prefs['rus_images'] and tmdb_ru:
+            ru_p = {l: d for l, d in tmdb_posters.iteritems() if d[2] == 'ru'}
+            for image, thumb in ru_p.iteritems():
+                posters[image] = (thumb[0], thumb[1])
+
+        if document.get('itunes_poster', {}):
+            posters[document['itunes_poster']['poster_url']] = (document['itunes_poster']['thumb_url'], len(posters)+1)
+            cnt = 1
+
+        last_p = document.get('tmdb_posters', {})
+        if self.api.Prefs['rus_images'] and tmdb_ru:
+            last_p = {l: d for l, d in tmdb_posters.iteritems() if d[2] != 'ru'}
+
+        for image, thumb in last_p.iteritems():
+            posters[image] = (thumb[0], thumb[1]+cnt)
 
         return posters
 

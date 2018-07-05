@@ -284,6 +284,9 @@ class TMDBSource(SourceBase):
                     if poster['iso_639_1'] != lang and poster['iso_639_1'] is not None and poster['iso_639_1'] != 'en':
                         movie_images['posters'][i]['score'] = poster['score'] - 1
 
+                    if self.api.Prefs['rus_images'] and poster['iso_639_1'] == lang:
+                        movie_images['posters'][i]['score'] += 1
+
                 for i, poster in enumerate(sorted(movie_images['posters'], key=lambda k: k['score'], reverse=True)):
                     if i > ARTWORK_ITEM_LIMIT:
                         break
@@ -293,8 +296,10 @@ class TMDBSource(SourceBase):
                         valid_names.append(poster_url)
 
                         if poster_url not in metadata['tmdb_posters']:
-                            try: metadata['tmdb_posters'][poster_url] = (thumb_url, i+1)
+                            try: metadata['tmdb_posters'][poster_url] = (thumb_url, i+1, poster['iso_639_1'])
                             except: pass
+
+                self.d('tmdb posters = %s', movie_images['posters'])
 
             # Backdrops.
             valid_names = list()
@@ -328,3 +333,5 @@ class TMDBSource(SourceBase):
                         if backdrop_url not in metadata['tmdb_art']:
                             try: metadata['tmdb_art'][backdrop_url] = (thumb_url, i+1)
                             except: pass
+
+                self.d('tmdb backdrops = %s', movie_images['backdrops'])

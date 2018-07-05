@@ -45,6 +45,12 @@
     "default":"false"
   },
   {
+    "id": "rus_images",
+    "label": "Приоритет локализованным изображениям",
+    "type":"bool",
+    "default":"false"
+  },
+  {
     "id":"sentry",
     "label":"Включить передачу ошибок в Sentry",
     "type":"bool",

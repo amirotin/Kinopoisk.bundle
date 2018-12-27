@@ -66,7 +66,7 @@ class KPTrailersSource(SourceBase):
             for key, trailer in trailers.iteritems():
                 title = params[trailer['id']]['n']
                 clip_type = self.extra_type(title.lower())
-                if clip_type:
+                if clip_type and 'yandexVideoId' in trailer:
                     extras.append({
                         'type': clip_type,
                         'views': trailer['views'],

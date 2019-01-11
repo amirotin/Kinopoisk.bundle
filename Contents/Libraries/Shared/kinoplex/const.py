@@ -60,7 +60,7 @@ config['kinopoisk']['extras']['headers'] = lambda:{
     'User-Agent': generate_user_agent(),
     'DNT':'1'
 }
-config['kinopoisk']['extras']['clip_url'] = '//video.kinopoisk.ru/iframe/kinopoisk-trailers/%s'
+config['kinopoisk']['extras']['clip_url'] = 'https://static.video.yandex.net/get/kinopoisk-trailers/%s/0h.xml'
 
 
 #config['kinopoisk']['extras']['re']['tr'] = "//table[ancestor::table[2]]//tr[*//a[@onclick] and (*//div[contains(@class,'flag2')] or not(*//div[contains(@class,'flag') and span]))]"

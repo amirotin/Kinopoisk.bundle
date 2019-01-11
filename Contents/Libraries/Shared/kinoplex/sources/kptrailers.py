@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from base import SourceBase
-from urlparse import urlparse, parse_qs
+from urlparse import urlparse
+
 
 class KPTrailersSource(SourceBase):
     def __init__(self, app):
@@ -20,7 +21,7 @@ class KPTrailersSource(SourceBase):
             param_str += '%s,%s,rnd-%s;' % data['d']
         return self.api.String.Quote(param_str[:-1])
 
-    def update(self, metadata, media, lang, force=False, periodic=False):
+    def update(self, metadata, *args):
         self.l('update from KPTrailersSource')
         extras = []
         TYPE_ORDER = ['scene_or_sample', 'interview', 'behind_the_scenes', 'trailer']
@@ -42,12 +43,10 @@ class KPTrailersSource(SourceBase):
                 redirect = 'https://www.kinopoisk.ru%s' % redirect
             video_page = self.api.HTTP.Request(redirect, headers=self.c.kinopoisk.main.headers())
 
-        # list of trailers for movie
         page = self.api.HTML.ElementFromString(video_page.content)
 
         if len(page) != 0:
             params = {}
-            # form array of id+name
             for link in page.xpath(self.c.kinopoisk.extras.re):
                 id = link.get('href').split('/')[-2]
                 params[int(id)] = {
@@ -57,22 +56,24 @@ class KPTrailersSource(SourceBase):
             if not params:
                 return
 
-            # get trailers data
             trailers = self._fetch_json(
                 self.c.kinopoisk.extras.url % self.make_request(params),
                 headers=self.c.kinopoisk.extras.headers()
             )
-            # form extras array
             for key, trailer in trailers.iteritems():
                 title = params[trailer['id']]['n']
                 clip_type = self.extra_type(title.lower())
-                if clip_type and 'yandexVideoId' in trailer:
+                try:
+                    trailer_id = urlparse(trailer['url']).path.rpartition('/')[2]
+                except:
+                    trailer_id = 0
+                if clip_type:
                     extras.append({
                         'type': clip_type,
                         'views': trailer['views'],
                         'extra': TYPE_MAP[clip_type](
                             title=title,
-                            url=self.c.kinopoisk.extras.clip_url % trailer['yandexVideoId'],
+                            url=self.c.kinopoisk.extras.clip_url % trailer_id,
                             thumb='https:' + trailer['img'].get('bigPreviewUrl', {}).get('x1', '')
                         )
                     })

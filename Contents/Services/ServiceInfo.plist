@@ -8,7 +8,7 @@
 		<dict>
 			<key>URLPatterns</key>
 			<array>
-				<string>\/\/video.kinopoisk.ru.*</string>
+				<string>https://static.video.yandex.net</string>
 			</array>
 		</dict>
 		<key>IVA</key>

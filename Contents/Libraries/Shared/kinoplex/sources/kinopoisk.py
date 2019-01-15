@@ -83,7 +83,10 @@ class KinopoiskSource(SourceBase):
 
         if manual and media.name.find('kinopoisk.ru') >= 0:
             self.l('we got kinopoisk url as name')
-            movie_id = media.name.split('-')[-1][:-1]
+            if '-' in media.name:
+                movie_id = media.name.split('-')[-1][:-1]
+            else:
+                movie_id = media.name.split('/')[-2]
             if movie_id.isdigit():
                 (title, year) = self.find_by_id(movie_id)
                 if title is not None:

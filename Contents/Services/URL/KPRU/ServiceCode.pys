@@ -7,12 +7,12 @@ HTTP_HEADERS = {
     'DNT':'1'
 }
 
-def MediaObjectsForURL(url):
+def MediaObjectsForURL(link):
     trailer_data = {}
     try:
-        trailer_data = JSON.ObjectFromURL(url, headers=HTTP_HEADERS)
+        trailer_data = JSON.ObjectFromURL(link, headers=HTTP_HEADERS)
     except:
-        Log('Something wrong with trailer url %s', url)
+        Log('Something wrong with trailer url %s', link)
         raise Ex.MediaNotAvailable
 
     if not trailer_data:
@@ -30,16 +30,26 @@ def MediaObjectsForURL(url):
             height=clip['height'],
             video_resolution=clip['quality'],
             parts=[
-                PartObject(key = Callback(PlayVideo, url=clip['get-location-url']))
+                PartObject(key=Callback(PlayVideo, url=link, quality=clip['quality'], bitrate=clip['bitrate']))
             ],
         ) for clip in filter(lambda w: w['format'] == 'mp4', trailer_data.get('video-files', {}).get('items', []))
     ]
 
 @indirect
-def PlayVideo(url, **kwargs):
+def PlayVideo(url, quality, bitrate, **kwargs):
     trailer_data = JSON.ObjectFromURL(url, headers=HTTP_HEADERS)
+    clip_data = {}
+    clip_filter = []
+    if trailer_data:
+        clip_filter = filter(
+            lambda w: w['format'] == 'mp4' and w['quality'] == quality and w['bitrate'] == bitrate,
+            trailer_data.get('video-files', {}).get('items', [])
+        )
 
-    if not trailer_data:
+    if clip_filter:
+        clip_data = clip_filter[0]
+
+    if not clip_data:
         raise Ex.MediaNotAvailable
 
-    return IndirectResponse(VideoClipObject, key=trailer_data['video-location'])
+    return IndirectResponse(VideoClipObject, key=clip_data['get-with-redirect-url'])

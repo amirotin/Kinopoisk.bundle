@@ -8,18 +8,23 @@ COUNT_PENALTY_THRESHOLD = 500.0 # Items with less than this value are penalized 
 COUNT_PENALTY_MAX = 10.0 # Maximum amount to penalize matches with low counts.
 FUTURE_RELEASE_DATE_PENALTY = 10.0 # How much to penalize movies whose release dates are in the future.
 YEAR_PENALTY_MAX = 10.0 # Maximum amount to penalize for mismatched years.
-GOOD_SCORE = 98 # Score required to short-circuit matching and stop searching.
+GOOD_SCORE = 97 # Score required to short-circuit matching and stop searching.
 SEARCH_RESULT_PERCENTAGE_THRESHOLD = 80 # Minimum 'percentage' value considered credible for PlexMovie results.
 
 ARTWORK_ITEM_LIMIT = 15
 POSTER_SCORE_RATIO = .3 # How much weight to give ratings vs. vote counts when picking best posters. 0 means use only ratings.
 BACKDROP_SCORE_RATIO = .3
 
+
 class TMDBSource(SourceBase):
     def __init__(self, app):
         super(TMDBSource, self).__init__(app)
 
-    def safe_unicode(self, s,encoding='utf-8'):
+    def update_ext_ids(self, meta, source, ext_id):
+        if meta['meta_ids'].get(source) is None and ext_id is not None:
+            meta['meta_ids'][source] = ext_id
+
+    def safe_unicode(self, s, encoding='utf-8'):
         if s is None:
             return None
         if isinstance(s, basestring):
@@ -76,26 +81,26 @@ class TMDBSource(SourceBase):
                 if metadata['year'] and year:
                     per_year_penalty = int(YEAR_PENALTY_MAX / 3)
                     year_delta = abs(int(metadata['year']) - (int(year)))
-                if year_delta > 3:
-                    score_penalty += YEAR_PENALTY_MAX
-                else:
-                    score_penalty += year_delta * per_year_penalty
+                    if year_delta > 3:
+                        score_penalty += YEAR_PENALTY_MAX
+                    elif year_delta > 1 and dist > 0:
+                        score_penalty += year_delta * per_year_penalty
 
             # Store the final score in the result vector.
             matches[key][5] = int(INITIAL_SCORE - dist - score_penalty)
 
     def get_hash_results(self, meta, matches, search_type='hash', plex_hash='', lang='en'):
         if search_type is 'hash' and plex_hash is not None:
-            url = '%s/movie/hash/%s/%s.xml' % (self.c.tmdb.hash_base, plex_hash[0:2], plex_hash)
+            url = '%s/movie/hash/%s/%s.xml' % (self.conf.hash_base, plex_hash[0:2], plex_hash)
         else:
             if meta.get('original_title'):
                 titleyear_guid = self.titleyear_guid(meta['original_title'], meta['year'])
             else:
                 titleyear_guid = self.titleyear_guid(meta['title'], meta['year'])
-            url = '%s/movie/guid/%s/%s.xml' % (self.c.tmdb.hash_base, titleyear_guid[0:2], titleyear_guid)
+            url = '%s/movie/guid/%s/%s.xml' % (self.conf.hash_base, titleyear_guid[0:2], titleyear_guid)
 
         try:
-            self.l("checking %s search vector: %s" % (search_type, url))
+            self.d("checking %s search vector: %s" % (search_type, url))
             res = self._fetch_xml(url)
             xpath = "//match[@lang='%s']" % lang if search_type=='hash' else '//match'
             for match in res.xpath(xpath):
@@ -104,7 +109,16 @@ class TMDBSource(SourceBase):
                 year  = self.safe_unicode(match.get('year'))
                 count = int(match.get('count', 0))
                 pct   = int(match.get('percentage', 0))
-                dist  = self.api.Util.LevenshteinDistance(meta['original_title'], name.encode('utf-8'))
+                dist  = self.api.Util.LevenshteinDistance(meta.get('original_title', meta['title']), name.encode('utf-8'))
+                if pct >= 98 and dist > 5:
+                    tmdb_data = self.find_tmdb(id)
+                    if tmdb_data:
+                        dist_new = self.api.Util.LevenshteinDistance(meta.get('original_title', meta['title']), tmdb_data.get('original_title'))
+                        if dist_new < dist:
+                            dist = dist_new
+                            name = tmdb_data.get('title')
+                            if not year:
+                                year = tmdb_data.get('release_date', '')[:4]
 
                 # Intialize.
                 if not matches.has_key(id):
@@ -126,8 +140,13 @@ class TMDBSource(SourceBase):
             self.l("freebase/proxy %s lookup failed: %s" % (search_type, str(e)))
 
     def get_tmdb_search(self, metadata, search_title, search_year, lang):
-        tmdb = self.c.tmdb.api
-        tmdb_dict = self._fetch_json(tmdb.search(self.api.String.URLEncode(metadata.get(search_title)), search_year, lang, 'true'))
+        tmdb_dict = self._fetch_json(self.conf.api.search(
+            self.app.agent_type,
+            self.api.String.URLEncode(metadata.get(search_title)),
+            search_year,
+            lang,
+            'true'
+        ))
 
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for i, movie in enumerate(sorted(tmdb_dict['results'], key=lambda k: k['popularity'], reverse=True)):
@@ -184,8 +203,6 @@ class TMDBSource(SourceBase):
                 return key
 
         search_year = metadata['year']
-        if metadata.get('originally_available_at'):
-            search_year = metadata['year'] if metadata['originally_available_at'].year == metadata['year'] else metadata['originally_available_at'].year
 
         self.d('TITLE SEARCH')
         tmdb_dict = self.get_tmdb_search(metadata, 'title', search_year, lang)
@@ -208,7 +225,7 @@ class TMDBSource(SourceBase):
 
         self.d('UMP SEARCH')
         search_title = 'original_title' if metadata.get('original_title') else 'title'
-        ump_dict = self._fetch_xml(self.c.tmdb.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
+        ump_dict = self._fetch_xml(self.conf.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
         for video in ump_dict.xpath('//Video'):
             try:
                 video_id = video.get('ratingKey')[video.get('ratingKey').rfind('/') + 1:]
@@ -224,29 +241,39 @@ class TMDBSource(SourceBase):
             year = None
             try: year = int(video.get('year'))
             except: pass
-            self.d("Found ump search match: %s (%s) score=%d, key=%s" % (video.get('title'), video.get('year'), score, video_id))
-            if score >= GOOD_SCORE:
-                return video_id
+            if search_title == video.get('title'):
+                self.d("Found ump search match: %s (%s) score=%d, key=%s" % (video.get('title'), video.get('year'), score, video_id))
+                if score >= GOOD_SCORE:
+                    return video_id
 
+        return None
+
+    def find_tmdb(self, imdb_id):
+        resp_data = self._fetch_json(self.conf.api.find(imdb_id))
+        if resp_data:
+            tmdb_data = resp_data.get('%s_results' % self.app.agent_type, [{}])
+            if tmdb_data and tmdb_data[0]:
+                return tmdb_data[0]
+        return {}
 
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from TMDBSource')
-        tmdb = self.c.tmdb.api
         source_id = metadata['meta_ids'].get(self.source_name)
         if not source_id:
             source_id = metadata['meta_ids'][self.source_name] = self._search(metadata, media, lang)
+            if source_id and re.match('t*[0-9]{7}', str(source_id)):
+                source_id = metadata['meta_ids']['tmdb'] = self.find_tmdb(source_id).get('id')
 
         if source_id:
-            config_dict = self._fetch_json(tmdb.config)
-            movie_data = self._fetch_json(tmdb.movie(source_id, lang))
+            config_dict = self._fetch_json(self.conf.config)
+            movie_data = self._fetch_json(self.conf.api.data(self.app.agent_type, source_id, lang))
             if not isinstance(movie_data, dict) or 'overview' not in movie_data or movie_data['overview'] is None or movie_data['overview'] == "":
-                movie_data = self._fetch_json(tmdb.movie(source_id, ''))
+                movie_data = self._fetch_json(self.conf.api.data(self.app.agent_type, source_id, ''))
 
-            if re.match('t*[0-9]{7}', str(source_id)):
-                metadata['meta_ids']['tmdb'] = movie_data.get('id')
-
-            if metadata['meta_ids'].get('imdb') is None and movie_data.get('imdb_id') is not None:
-                metadata['meta_ids']['imdb'] = movie_data.get('imdb_id')
+            ext_ids = movie_data.get('external_ids', {})
+            if ext_ids:
+                self.update_ext_ids(metadata, 'imdb', ext_ids.get('imdb_id'))
+                self.update_ext_ids(metadata, 'tvdb', ext_ids.get('tvdb_id'))
 
             # Collections.
             metadata['collections'] = []
@@ -266,72 +293,18 @@ class TMDBSource(SourceBase):
                 metadata['studio'] = None
 
             if movie_data.get('vote_count', 0) > 3:
-                metadata['tmbp_rating'] = movie_data.get('vote_average', 0)
+                metadata['ratings']['tmdb'] = movie_data.get('vote_average', 0)
 
-            valid_names = list()
-            metadata['tmdb_posters'] = {}
             movie_images = movie_data.get('images', {})
-            if movie_images.get('posters'):
-                max_average = max([(lambda p: float(p['vote_average'] or 5))(p) for p in movie_images['posters']])
-                max_count = max([(lambda p: p['vote_count'])(p) for p in movie_images['posters']]) or 1
+            posters = metadata['covers']['tmdb'] = {}
+            for i, poster in enumerate(movie_images.get('posters', [])):
+                poster_url = config_dict['images']['base_url'] + 'original' + poster['file_path']
+                thumb_url = config_dict['images']['base_url'] + 'w154' + poster['file_path']
+                posters[poster_url] = (thumb_url, i+1, poster['iso_639_1'], poster['vote_average'], poster['vote_count'])
 
-                for i, poster in enumerate(movie_images['posters']):
-                    score = (float(poster['vote_average']) / max_average) * POSTER_SCORE_RATIO
-                    score += (poster['vote_count'] / max_count) * (1 - POSTER_SCORE_RATIO)
-                    movie_images['posters'][i]['score'] = score
+            backdrops = metadata['backdrops']['tmdb'] = {}
+            for i, backdrop in enumerate(movie_images.get('backdrops', [])):
+                backdrop_url = config_dict['images']['base_url'] + 'original' + backdrop['file_path']
+                thumb_url = config_dict['images']['base_url'] + 'w300' + backdrop['file_path']
+                backdrops[backdrop_url] = (thumb_url, i+1, backdrop['iso_639_1'], backdrop['vote_average'], backdrop['vote_count'])
 
-                    # Discount score for foreign posters.
-                    if poster['iso_639_1'] != lang and poster['iso_639_1'] is not None and poster['iso_639_1'] != 'en':
-                        movie_images['posters'][i]['score'] = poster['score'] - 1
-
-                    if self.api.Prefs['rus_images'] and poster['iso_639_1'] == lang:
-                        movie_images['posters'][i]['score'] += 1
-
-                for i, poster in enumerate(sorted(movie_images['posters'], key=lambda k: k['score'], reverse=True)):
-                    if i > ARTWORK_ITEM_LIMIT:
-                        break
-                    else:
-                        poster_url = config_dict['images']['base_url'] + 'original' + poster['file_path']
-                        thumb_url = config_dict['images']['base_url'] + 'w154' + poster['file_path']
-                        valid_names.append(poster_url)
-
-                        if poster_url not in metadata['tmdb_posters']:
-                            try: metadata['tmdb_posters'][poster_url] = (thumb_url, i+1, poster['iso_639_1'])
-                            except: pass
-
-                self.d('tmdb posters = %s', movie_images['posters'])
-
-            # Backdrops.
-            valid_names = list()
-            metadata['tmdb_art'] = {}
-            if movie_images.get('backdrops'):
-                max_average = max([(lambda p: float(p['vote_average'] or 5))(p) for p in movie_images['backdrops']])
-                max_count = max([(lambda p: p['vote_count'])(p) for p in movie_images['backdrops']]) or 1
-
-                for i, backdrop in enumerate(movie_images['backdrops']):
-
-                    score = (float(backdrop['vote_average']) / max_average) * BACKDROP_SCORE_RATIO
-                    score += (backdrop['vote_count'] / max_count) * (1 - BACKDROP_SCORE_RATIO)
-                    movie_images['backdrops'][i]['score'] = score
-
-                    # For backdrops, we prefer "No Language" since they're intended to sit behind text.
-                    if backdrop['iso_639_1'] == 'xx' or backdrop['iso_639_1'] == 'none':
-                        movie_images['backdrops'][i]['score'] = float(backdrop['score']) + 2
-
-                    # Discount score for foreign art.
-                    if backdrop['iso_639_1'] != lang and backdrop['iso_639_1'] is not None and backdrop['iso_639_1'] != 'en':
-                        movie_images['backdrops'][i]['score'] = float(backdrop['score']) - 1
-
-                for i, backdrop in enumerate(sorted(movie_images['backdrops'], key=lambda k: k['score'], reverse=True)):
-                    if i > ARTWORK_ITEM_LIMIT:
-                        break
-                    else:
-                        backdrop_url = config_dict['images']['base_url'] + 'original' + backdrop['file_path']
-                        thumb_url = config_dict['images']['base_url'] + 'w300' + backdrop['file_path']
-                        valid_names.append(backdrop_url)
-
-                        if backdrop_url not in metadata['tmdb_art']:
-                            try: metadata['tmdb_art'][backdrop_url] = (thumb_url, i+1)
-                            except: pass
-
-                self.d('tmdb backdrops = %s', movie_images['backdrops'])

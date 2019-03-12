@@ -1,61 +1,67 @@
 from base import SourceBase
 
+import re
+
 class FreebaseSource(SourceBase):
     def __init__(self, app):
         super(FreebaseSource, self).__init__(app)
 
+    def scrub_extra(self, extra, media_title):
+
+        e = extra['extra']
+
+        # Remove the "Movie Title: " from non-trailer extra titles.
+        if media_title is not None:
+            r = re.compile(media_title + ': ', re.IGNORECASE)
+            e.title = r.sub('', e.title)
+
+        # Remove the "Movie Title Scene: " from SceneOrSample extra titles.
+        if media_title is not None:
+            r = re.compile(media_title + ' Scene: ', re.IGNORECASE)
+            e.title = r.sub('', e.title)
+
+        # Capitalise UK correctly.
+        e.title = e.title.replace('Uk', 'UK')
+
+        return extra
+
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from FreebaseSource')
         freebase = None
-
-        if metadata['meta_ids'].get('imdb'):
-            freebase = self._fetch_xml(self.c.freebase.base % (metadata['meta_ids'].get('imdb')[2:], lang))
-
+        media_title = None
         TYPE_MAP = {'primary_trailer': self.api.TrailerObject,
                     'trailer': self.api.TrailerObject,
                     'interview': self.api.InterviewObject,
                     'behind_the_scenes': self.api.BehindTheScenesObject,
                     'scene_or_sample': self.api.SceneOrSampleObject}
 
+        if metadata['meta_ids'].get('imdb'):
+            freebase = self._fetch_xml(self.conf.base % (metadata['meta_ids'].get('imdb')[2:], lang))
 
         if freebase:
             extras = []
             self.l('Parsing IVA extras')
             for extra in freebase.xpath('//extra'):
                 avail = self.api.Datetime.ParseDate(extra.get('originally_available_at'))
-                lang_code = int(extra.get('lang_code')) if extra.get('lang_code') else -1
-                subtitle_lang_code = int(extra.get('subtitle_lang_code')) if extra.get('subtitle_lang_code') else -1
-                include = True
-                
-                # Exclude non-primary trailers and scenes.
                 extra_type = 'primary_trailer' if extra.get('primary') == 'true' else extra.get('type')
-                if extra_type == 'trailer' or extra_type == 'scene_or_sample':
-                    include = False
+                bitrates = extra.get('bitrates') or ''
+                duration = int(extra.get('duration') or 0)
+                adaptive = 1 if extra.get('adaptive') == 'true' else 0
+                dts = 1 if extra.get('dts') == 'true' else 0
 
-                # Don't include anything besides trailers if pref is set.
-                #if extra_type != 'primary_trailer' and Prefs['only_trailers']:
-                #    include = False
+                if extra_type == 'primary_trailer':
+                    media_title = extra.get('title')
 
-                if include:
+                if extra_type in TYPE_MAP:
+                    extras.append({ 'type' : extra_type,
+                                    'lang' : 0,
+                                    'extra' : TYPE_MAP[extra_type](url=self.conf.assets % (extra.get('iva_id'), 0, bitrates, duration, adaptive, dts),
+                                                                   title=extra.get('title'),
+                                                                   year=avail.year,
+                                                                   originally_available_at=avail,
+                                                                   thumb=extra.get('thumb') or '')})
 
-                    bitrates = extra.get('bitrates') or ''
-                    duration = int(extra.get('duration') or 0)
-                    adaptive = 1 if extra.get('adaptive') == 'true' else 0
-                    dts = 1 if extra.get('dts') == 'true' else 0
-
-                    # Remember the title if this is the primary trailer.
-                    if extra_type == 'primary_trailer':
-                        media_title = extra.get('title')
-
-                    if extra_type in TYPE_MAP:
-                        extras.append({ 'type' : extra_type,
-                                        'lang' : 0,
-                                        'extra' : TYPE_MAP[extra_type](url=self.c.freebase.assets % (extra.get('iva_id'), 0, bitrates, duration, adaptive, dts),
-                                                                    title=extra.get('title'),
-                                                                    year=avail.year,
-                                                                    originally_available_at=avail,
-                                                                    thumb=extra.get('thumb') or '')})
-            metadata['iva_extras'] = extras
+            metadata['clips']['iva'] = [self.scrub_extra(extra, media_title) for extra in extras]
 
             try:
                 # Ratings.
@@ -75,7 +81,7 @@ class FreebaseSource(SourceBase):
                     }
 
                     ratings = freebase.xpath('//ratings')
-                    rt_ratings = metadata['rt_raings'] = {}
+                    rt_ratings = metadata['ratings']['rt'] = {}
                     if ratings:
                         ratings = ratings[0]
                         try:
@@ -98,15 +104,16 @@ class FreebaseSource(SourceBase):
                         except KeyError:
                             rt_ratings['audience_rating_image'] = ''
 
-                metadata['rotten_reviews'] = []
+                reviews = metadata['reviews']['rt'] = []
                 for review in freebase.xpath('//review'):
                     if review.text not in [None, False, '']:
-                        metadata['rotten_reviews'].append({
+                        reviews.append({
                             'author': review.get('critic'),
                             'source': review.get('publication'),
                             'image': 'rottentomatoes://image.review.fresh' if review.get('freshness') == 'fresh' else 'rottentomatoes://image.review.rotten',
                             'link': review.get('link'),
                             'text': review.text
                         })
+                del reviews
             except Exception, e:
                 self.l('Error obtaining Rotten tomato data for %s: %s' % (metadata['meta_ids'].get('imdb'), str(e)))

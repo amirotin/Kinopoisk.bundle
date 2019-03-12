@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-import sys, interface
+import sys
+import interface
+
 from kinoplex.restore import restore_builtins
 from kinoplex.updater import Updater
 from interface.menu import *
@@ -9,9 +11,10 @@ module = sys.modules['__main__']
 restore_builtins(module, {})
 globals = getattr(module, "__builtins__")["globals"]
 
-from kinoplex.utils import init_class, setup_sentry, setup_network
-setup_sentry(Core, Platform)
+from kinoplex.utils import init_class, setup_network, setup_sentry
 setup_network(Core, Prefs)
+if Prefs['sentry']:
+    setup_sentry(Core, Platform)
 
 def Start():
     HTTP.CacheTime = 0 #CACHE_1WEEK
@@ -20,7 +23,7 @@ def Start():
         Thread.CreateTimer(int(Prefs['update_interval'] or 1)*60, Updater.auto_update_thread, core=Core, pref=Prefs)
 
 def ValidatePrefs():
-    HTTP.Request("http://127.0.0.1:32400/:/plugins/%s/restart" % Plugin.Identifier, immediate=True, cacheTime=0)
+    pass
 
-KinopoiskMovieAgent = init_class('KinopoiskMovieAgent', Agent.Movies, globals())
-#KinopoiskShowAgent = init_class('KinopoiskShowAgent', Agent.TV_Shows, globals())
+KinopoiskMovieAgent = init_class('KinopoiskMovieAgent', Agent.Movies, globals(), 0)
+#KinopoiskShowAgent = init_class('KinopoiskShowAgent', Agent.TV_Shows, globals(), 0)

@@ -5,8 +5,13 @@ from kinoplex.utils import getVersionInfo
 
 PREFIX = '/video/kinopoisk'
 ObjectContainer.title1 = 'Kinopoisk'
-Plugin.AddViewGroup("full_details", viewMode="InfoList", mediaType="items", type="list", summary=2)
+Plugin.AddViewGroup("FullDetails", viewMode="InfoList", mediaType="items")
+
+ICON = 'icon-default.jpg'
+
 v,d = getVersionInfo(Core)
+
+DirectoryObject.thumb = R(ICON)
 
 @handler(PREFIX, 'Kinopoisk #%s' % v)
 @route(PREFIX)
@@ -14,10 +19,22 @@ def root(**kwargs):
     v, d = getVersionInfo(Core)
     d = datetime.datetime.fromtimestamp(d).strftime('%d.%m.%Y %X')
     title = 'Kinopoisk #%s' % v
-    oc = ObjectContainer(title1=title, title2=title, header=title, view_group="full_details")
+    oc = ObjectContainer(title1=title, title2=title, header=title, view_group="FullDetails")
 
     oc.add(DirectoryObject(
-        title= 'Kinopoisk #%s (%s)' % (v, d)
+        title=u'Плагин Kinopoisk',
+        tagline=u'Обновлен %s' % d,
+        summary=u'Версия %s' % v
+    ))
+
+    oc.add(DirectoryObject(
+        key='advanced',
+        title=u'Расширенные настройки',
+    ))
+
+    oc.add(DirectoryObject(
+        key='restart',
+        title=u'Перезагрузка плагина'
     ))
 
     return oc

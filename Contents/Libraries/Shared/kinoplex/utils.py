@@ -1,36 +1,53 @@
 # -*- coding: utf-8 -*-
+import os, time, logging, urllib, sentry_sdk, socket
+
+from sentry_sdk.integrations.logging import LoggingIntegration
+from requests import Session, Response, RequestException
+from requests.adapters import HTTPAdapter
+from requests.structures import CaseInsensitiveDict
+from requests.utils import get_encoding_from_headers
+from requests.cookies import extract_cookies_to_jar
+from requests.packages.urllib3.util.retry import Retry
+
+from sentry_sdk import configure_scope
+
+from kinoplex.const import config, tree
 from kinoplex.agent import KinoPlex
-from kinoplex.const import config
 from kinoplex.meta import prepare_meta
 
 from collections import namedtuple
 from datetime import datetime
 from types import MethodType
 
-from raven.handlers.logging import SentryHandler
+TRACE_LEVEL_NUM = 15
+logging.addLevelName(TRACE_LEVEL_NUM, "TRACE")
 
-import os, time, logging, urllib3, urllib
-from urllib3.contrib.socks import SOCKSProxyManager
 
-urllib3.disable_warnings()
-
-# extend HTTPResponse to match Plex network component
-class PlexHTTPResponse(urllib3.HTTPResponse):
+class PlexResponse(Response):
     def __str__(self):
-        return self.data
+        return self.content
 
-    @property
-    def content(self):
-        return self.data
 
-class PlexHTTPConnectionPool(urllib3.HTTPConnectionPool):
-    ResponseCls = PlexHTTPResponse
+class PlexHTTPAdapter(HTTPAdapter):
+    def build_response(self, req, resp):
+        response = PlexResponse()
+        response.status_code = getattr(resp, 'status', None)
+        response.headers = CaseInsensitiveDict(getattr(resp, 'headers', {}))
+        response.encoding = get_encoding_from_headers(response.headers)
+        response.raw = resp
+        response.reason = response.raw.reason
+        if isinstance(req.url, bytes):
+            response.url = req.url.decode('utf-8')
+        else:
+            response.url = req.url
+        extract_cookies_to_jar(response.cookies, req, resp)
+        response.request = req
+        response.connection = self
+        return response
 
-class PlexHTTPSConnectionPool(urllib3.HTTPSConnectionPool):
-    ResponseCls = PlexHTTPResponse
 
 def getVersionInfo(core):
-    current_version = 'BETA2'
+    current_version = 'DEVELOP-050319'
     current_mtime = 0
     version_path = core.storage.join_path(core.bundle_path, 'Contents', 'VERSION')
     if core.storage.file_exists(version_path):
@@ -38,49 +55,15 @@ def getVersionInfo(core):
         current_mtime = core.storage.last_modified(version_path)
     return current_version, current_mtime
 
-# replace default urllib2 with faster urllib3
-def setup_network(core, prefs):
-    retries = urllib3.Retry(backoff_factor=2, status_forcelist=set([500]))
 
-    core.networking.pool = urllib3.PoolManager(retries=retries, maxsize=5)
-    core.networking.pool.pool_classes_by_scheme = {
-        'http': PlexHTTPConnectionPool,
-        'https': PlexHTTPSConnectionPool,
-    }
+# implement http_request using requests
+def requests_http_request(self, url, values=None, headers={}, cacheTime=None, encoding=None, errors=None, timeout=0, immediate=False, sleep=0, data=None, opener=None, sandbox=None, follow_redirects=True, basic_auth=None, method=None):
+    def _content_type_allowed(content_type):
+        for t in ['html', 'xml', 'json', 'javascript']:
+            if t in content_type:
+                return True
+        return False
 
-    if prefs['proxy_adr'] and prefs['proxy_adr'].startswith('http'):
-        if prefs['proxy_type'] == 'SOCK5':
-            core.networking.pool_proxy = SOCKSProxyManager(prefs['proxy_adr'], retries=retries, maxsize=5)
-        else:
-            core.networking.pool_proxy = urllib3.ProxyManager(prefs['proxy_adr'], retries=retries, maxsize=5)
-        core.networking.pool_proxy.pool_classes_by_scheme = core.networking.pool.pool_classes_by_scheme
-
-    core.networking.http_request = MethodType(urllib3_http_request, core.networking)
-
-def setup_sentry(core, platform):
-    handler = SentryHandler('https://5a974a896d6b4d208ca70d600814d942@sentry.io/202380', tags={
-        'os': platform.OS,
-        'plexname': core.get_server_attribute('friendlyName'),
-        'osversion': platform.OSVersion,
-        'cpu': platform.CPU,
-        'serverversion': platform.ServerVersion,
-        'pluginversion': getVersionInfo(core)[0]
-    })
-    handler.setLevel(logging.ERROR)
-    core.log.addHandler(handler)
-    u3 = logging.getLogger("urllib3")
-    u3.setLevel(core.log.getEffectiveLevel())
-    for ch in core.log.handlers:
-        u3.addHandler(ch)
-
-def _content_type_allowed(content_type):
-    for t in ['html', 'xml', 'json', 'javascript']:
-        if t in content_type:
-            return True
-    return False
-
-# implement http_request using urllib3
-def urllib3_http_request(self, url, values=None, headers={}, cacheTime=None, encoding=None, errors=None, timeout=0, immediate=False, sleep=0, data=None, opener=None, sandbox=None, follow_redirects=True, basic_auth=None, method=None):
     if cacheTime == None: cacheTime = self.cache_time
     pos = url.rfind('#')
     if pos > 0:
@@ -112,7 +95,9 @@ def urllib3_http_request(self, url, values=None, headers={}, cacheTime=None, enc
             del manager[url]
         else:
             self._core.log.debug("Fetching '%s' from the HTTP cache", url)
-            res = PlexHTTPResponse(url_cache['content'], headers=url_cache.headers)
+            res = PlexResponse()
+            res.content = url_cache['content']
+            res.headers = url_cache.headers
             return res
 
     h = dict(self.default_headers)
@@ -120,6 +105,8 @@ def urllib3_http_request(self, url, values=None, headers={}, cacheTime=None, enc
     if sandbox:
         h.update(sandbox.custom_headers)
     h.update(headers)
+
+    self._core.log.debug("Requesting '%s'", url)
 
     if 'PLEXTOKEN' in os.environ and len(os.environ['PLEXTOKEN']) > 0 and h is not None and url.find('http://127.0.0.1') == 0:
         h['X-Plex-Token'] = os.environ['PLEXTOKEN']
@@ -131,10 +118,11 @@ def urllib3_http_request(self, url, values=None, headers={}, cacheTime=None, enc
         h.update({'clientDate': datetime.now().strftime("%H:%M %d.%m.%Y"), 'x-timestamp': str(int(round(time.time() * 1000)))})
         h.update({'x-signature': self._core.data.hashing.md5(url[len(config.kinopoisk.api.base[:-2]):]+h.get('x-timestamp')+config.kinopoisk.api.hash)})
 
-    if url.find('http://127.0.0.1') < 0 and hasattr(self, 'pool_proxy'):
-        req = self.pool_proxy.request(method or 'GET', url, headers=h, redirect=follow_redirects, body=data)
-    else:
-        req = self.pool.request(method or 'GET', url, headers=h, redirect=follow_redirects, body=data)
+    req = None
+    try:
+        req = self.session.request(method or 'GET', url, headers=h, allow_redirects=follow_redirects, data=data)
+    except RequestException as e:
+        self._core.log.error("Failed request %s: %s", url, e)
 
     if url_cache != None:
         content_type = req.getheader('Content-Type', '')
@@ -145,34 +133,111 @@ def urllib3_http_request(self, url, values=None, headers={}, cacheTime=None, enc
             url_cache.headers = dict(req.headers)
     return req
 
-# main search function
+
+def setup_sentry(core, platform):
+    core.log.debug('sentry install')
+    sentry_logging = LoggingIntegration(
+        level=logging.INFO,        # Capture info and above as breadcrumbs
+        event_level=logging.ERROR  # Send errors as events
+    )
+
+    def before_send(event, hint):
+        core.log.debug('sentry error event = %s, hint = %s', event, hint)
+        if 'exc_info' in hint:
+            exc_type, exc_value, tb = hint['exc_info']
+            if exc_type == socket.error:
+                return None
+
+        if 'location' in event and event.get('location', '').startswith('tornado'):
+            return None
+
+        message = event.get('message') or event.get('logentry', {}).get('message')
+        if message and message.startswith((
+            'Cannot read model from',
+            'Unable to deserialize object at',
+            'Exception when constructing media object',
+            "Exception in thread named '_handle_request'"
+        )):
+            return None
+        return event
+
+    sentry_sdk.init(
+        dsn="https://72956c89a392413f81243895cd72bd4f@sentry.io/202380",
+        integrations=[sentry_logging],
+        environment='develop',
+        before_send=before_send
+    )
+
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag('os', platform.OS,)
+        scope.set_tag('plexname', core.get_server_attribute('friendlyName'))
+        scope.set_tag('osversion', platform.OSVersion)
+        scope.set_tag('cpu', platform.CPU)
+        scope.set_tag('serverversion', platform.ServerVersion)
+        scope.set_tag('pluginversion', getVersionInfo(core)[0])
+        scope.user = {'id': platform.MachineIdentifier}
+
+
+def setup_network(core, prefs):
+    core.log.debug('requests install')
+    core.networking.session = Session()
+    retry = Retry(
+        total=3,
+        read=3,
+        connect=3,
+        backoff_factor=0.3,
+        status_forcelist=(500, 502, 504),
+    )
+    core.networking.session.mount('https://', PlexHTTPAdapter(max_retries=retry))
+    core.networking.session.mount('http://', PlexHTTPAdapter(max_retries=retry))
+    core.networking.http_request = MethodType(requests_http_request, core.networking)
+
+
 def search_event(self, results, media, lang, manual=False, version=0, primary=True):
-    self.fire('search', results, media, lang, manual, primary)
+    with configure_scope() as scope:
+        scope.set_extra("media", media.__dict__)
+    try:
+        self.quick_search(results, media, lang, manual, primary)
+        self.fire('search', results, media, lang, manual, primary)
+    except Exception, e:
+        self.api.Log.Error(e, exc_info=True)
 
-# main update function
+
 def update_event(self, metadata, media, lang, force=False, version=0, periodic=False):
-    ids = {}
-    if self.api.Data.Exists(media.id):
-        ids = self.api.Data.LoadObject(media.id)
-    metadict = dict(id=metadata.id, meta_ids=ids)
-    self.fire('update', metadict, media, lang, force, periodic)
-    prepare_meta(metadict, metadata, self.api)
-    self.api.Data.SaveObject(media.id, metadict['meta_ids'])
+    with configure_scope() as scope:
+        scope.set_extra("media", media.__dict__)
+    try:
+        ids = {}
+        if self.api.Data.Exists(media.id):
+            ids = self.api.Data.LoadObject(media.id)
+        metadict = dict(id=metadata.id, meta_ids=ids, ratings={}, reviews={}, covers={}, backdrops={}, clips={}, seasons=tree())
+        self.fire('update', metadict, media, lang, force, periodic)
+        prepare_meta(metadict, metadata, self)
+        self.api.Data.SaveObject(media.id, metadict['meta_ids'])
+    except Exception, e:
+        self.api.Log.Error(e, exc_info=True)
 
-# class constructor
+
+def log_trace(self, message, *args):
+    if self.api.Prefs['trace']:
+        self.api.Core.log.log(TRACE_LEVEL_NUM, message, *args)
+
+
 def init_class(cls_name, cls_base, gl, version=0):
+
     g = dict((k, v) for k, v in gl.items() if not k.startswith("_"))
     d = {
         'name': u'Кинопоиск2.0',
         'api': namedtuple('Struct', g.keys())(*g.values()),
-        'agent_type': 'movies' if cls_base.__name__ == 'Movies' else 'series',
+        'agent_type': 'movie' if cls_base.__name__ == 'Movies' else 'tv',
         'primary_provider': True,
         'languages': ['ru', 'en'],
         'accepts_from': ['com.plexapp.agents.localmedia'],
         'contributes_to': config.get('contrib',{}).get(cls_base.__name__,[]),
         'c': config,
-        #'s': filter(lambda x: x.__class__.__name__ == 'SentryHandler', g['Core'].log.handlers)[0].client,
+        'trace': log_trace,
         'search': search_event,
-        'update': update_event
+        'update': update_event,
+        'version': version
     }
     return d.get('__metaclass__', type)(cls_name, (KinoPlex, cls_base,), d)

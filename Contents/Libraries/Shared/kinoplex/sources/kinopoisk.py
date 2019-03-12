@@ -2,6 +2,7 @@
 from base import SourceBase
 
 import re
+from guessit import guessit
 
 
 class KinopoiskSource(SourceBase):
@@ -9,17 +10,17 @@ class KinopoiskSource(SourceBase):
         super(KinopoiskSource, self).__init__(app)
 
     def get_name(self, media):
-        return self.api.String.Quote(media.name if self.app.agent_type == 'movies' else media.show, False)
+        return self.api.String.Quote(media.name if self.app.agent_type == 'movie' else media.show, False)
 
     def _suggest_search(self, matches, media):
         json = self._fetch_json(
-            self.c.kinopoisk.main.yasearch % self.get_name(media),
-            headers=self.c.kinopoisk.main.headers()
+            self.conf.main.yasearch % self.get_name(media),
+            headers=self.conf.main.headers()
         )
         json = json[2] if 2 <= len(json) else []
         cnt = 0
         if json:
-            ftype = 'MOVIE' if self.app.agent_type == 'movies' else 'SHOW'
+            ftype = 'MOVIE' if self.app.agent_type == 'movie' else 'SHOW'
             for i, movie in enumerate(
                     sorted(
                         filter(lambda z: z.get('type', '') == ftype and z.get('title'),
@@ -28,21 +29,21 @@ class KinopoiskSource(SourceBase):
                 if {'originalTitle', 'title', 'years'} <= set(movie) \
                         and (len(movie['years']) == 1 and movie['years'][0] <= self.api.Datetime.Now().year):
                     matches[str(movie['entityId'])] = [movie['title'], movie['originalTitle'], movie['years'][0], i, 0]
-                cnt = cnt + 1
+                    cnt = cnt + 1
         return cnt
 
     def _main_search(self, matches, media):
         json = self._fetch_json(
-            self.c.kinopoisk.main.search % self.get_name(media),
-            headers=self.c.kinopoisk.main.headers()
+            self.conf.main.search % self.get_name(media),
+            headers=self.conf.main.headers()
         )
         cnt = 0
         if json:
             for i, movie in enumerate(json):
                 if movie['link'].startswith('/film/') \
                         and (
-                            (movie['type'] in ['film', 'first'] and movie.get('is_serial', '') == '')
-                            or ('is_serial' in movie and movie['is_serial'] == 'mini')) \
+                            (movie['type'] in ['film', 'first'])
+                            or ('is_serial' in movie and movie['is_serial'] in ('serial', 'mini', 'TV'))) \
                         and int(movie['year'][:4]) <= self.api.Datetime.Now().year:
                     matches[str(movie['id'])] = [movie['rus'], movie['name'], movie['year'], i,
                                                  5 if movie['type'] == 'first' else 0]
@@ -51,16 +52,16 @@ class KinopoiskSource(SourceBase):
 
     def _api_search(self, matches, media):
         json = self._fetch_json(
-            self.c.kinopoisk.api.search % self.get_name(media),
-            headers=self.c.kinopoisk.api.headers
+            self.conf.api.search % self.get_name(media),
+            headers=self.conf.api.headers
         )
         json = json.get('data', {}).get('items', {})
         cnt = 0
         if json:
             for i, movie in enumerate(json):
                 if {'id', 'nameRU', 'year'} <= set(movie) and movie['type'] == 'KPFilmObject' \
-                        and ((self.app.agent_type == 'movies' and u'(сериал)' not in movie['nameRU'])
-                             or self.app.agent_type == 'series') \
+                        and ((self.app.agent_type == 'movie' and u'(сериал)' not in movie['nameRU'])
+                             or self.app.agent_type == 'tv') \
                         and int(movie['year'][0:4]) <= self.api.Datetime.Now().year:
                     matches[str(movie['id'])] = [movie['nameRU'], movie.get('nameEN', ''), movie['year'], i,
                                                  0 if i > 0 else 5]
@@ -68,7 +69,7 @@ class KinopoiskSource(SourceBase):
         return cnt
 
     def find_by_id(self, movie_id):
-        movie_data = self.make_request(self.c.kinopoisk.api.film_details, movie_id)
+        movie_data = self.make_request(self.conf.api.film_details, movie_id)
         if movie_data:
             return movie_data['nameRU'], int(movie_data.get('year').split('-', 1)[0] or 0)
         return None, None
@@ -76,17 +77,20 @@ class KinopoiskSource(SourceBase):
     def search(self, results, media, lang, manual=False, primary=True):
         continue_search = True
         matches = {}
-        search_sources = [self._api_search, self._main_search, self._suggest_search]
+        search_sources = [self._main_search, self._api_search, self._suggest_search]
 
         if manual and self.api.Data.Exists(media.id):
+            self.d('manual search - remove matched ids')
             self.api.Data.Remove(media.id)
 
-        if manual and media.name.find('kinopoisk.ru') >= 0:
-            self.l('we got kinopoisk url as name')
-            if '-' in media.name:
-                movie_id = media.name.split('-')[-1][:-1]
+        media_name = self.get_name(media)
+        if manual and media_name.find('kinopoisk.ru') >= 0:
+            self.d('manual search - link passed as name (%s)', media_name)
+            if media_name.find('-') >= 0:
+                movie_id = media_name.split('-')[-1][:-1]
             else:
-                movie_id = media.name.split('/')[-2]
+                movie_id = media_name.split('/')[-2]
+
             if movie_id.isdigit():
                 (title, year) = self.find_by_id(movie_id)
                 if title is not None:
@@ -101,15 +105,24 @@ class KinopoiskSource(SourceBase):
                     )
                     return
 
+        if media.year is None and media.filename:
+            self.d('no year, try guessit parse')
+            try:
+                guessit_results = guessit(self.api.String.Unquote(media.filename))
+                media.name = guessit_results['title']
+                if 'year' in guessit_results:
+                    media.year = guessit_results['year']
+            except Exception, e:
+                self.l.Error(e, exc_info=True)
+
         for s in search_sources:
             s_match = {}
             if manual or continue_search:
                 cnt = s(matches if manual else s_match, media)
-                self.l('%s returned %s results', s.__name__, cnt)
-                # if not manual - score each source separate
+                self.d('%s returned %s results', s.__name__, cnt)
                 if not manual and continue_search:
                     self.app.score.score(media, s_match)
-                    if s_match.values() and max(s_match.values(), key=lambda m: m[4])[4] >= self.c.score.besthit:
+                    if s_match.values() and max(s_match.values(), key=lambda m: m[4])[4] >= 95:
                         continue_search = False
                     for i, d in s_match.iteritems():
                         if i in matches:
@@ -117,7 +130,6 @@ class KinopoiskSource(SourceBase):
                         else:
                             matches.update(s_match)
 
-        # if manual - score all sources
         if manual:
             self.app.score.score(media, matches)
 
@@ -128,76 +140,74 @@ class KinopoiskSource(SourceBase):
 
         if manual:
             for result in results:
-                result.thumb = self.c.kinopoisk.thumb % result.id
+                result.thumb = self.conf.thumb % result.id
                 self.l(result.thumb)
         results.Sort('score', descending=True)
 
-    def make_request(self, link, kp_id):
+    def make_request(self, link, *args):
         data = {}
         try:
             data = self.api.JSON.ObjectFromURL(
-                link % kp_id, headers=self.c.kinopoisk.api.headers)
+                link % args, headers=self.conf.api.headers)
         except:
             self.l.Error('Something goes wrong with request', exc_info=True)
         finally:
             data = data.get('data', {})
-
         return data
 
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update KinopoiskSource')
         self.load_meta(metadata)
         self.load_staff(metadata)
-        self.load_similar(metadata)
         self.load_reviews(metadata)
         self.load_gallery(metadata)
 
-    # load main details
+        if metadata['has_similar']:
+            self.load_similar(metadata)
+        #if metadata['has_pre_sequel']:
+        #    self.load_sequel(metadata)
+
+        if self.app.agent_type == 'tv':
+            self.load_series(metadata, media)
+
     def load_meta(self, metadata):
-        movie_data = self.make_request(self.c.kinopoisk.api.film_details, metadata['id'])
+        movie_data = self.make_request(self.conf.api.film_details, metadata['id'])
         if not movie_data:
             return
 
-        # title
-        repls = (u' (видео)', u' (ТВ)', u' (мини-сериал)', u' (сериал)')  # remove unnecessary text
+        repls = (u' (видео)', u' (ТВ)', u' (мини-сериал)', u' (сериал)')
         metadata['title'] = reduce(lambda a, kv: a.replace(kv, ''), repls, movie_data['nameRU'])
 
-        # original title
         if 'nameEN' in movie_data and movie_data['nameEN'] != movie_data['nameRU']:
             metadata['original_title'] = movie_data['nameEN']
 
-        # slogan
         metadata['tagline'] = movie_data.get('slogan', '')
-        # content rating age
         metadata['content_rating_age'] = int(movie_data.get('ratingAgeLimits') or 0)
-        # year
-        metadata['year'] = int(movie_data.get('year').split('-', 1)[0] or 0)
-        # countries
+        try:
+            metadata['year'] = int(movie_data.get('year', '').split('-', 1)[0] or 0)
+        except:
+            self.l('error converting year (%s) to int', movie_data.get('year'))
+
         metadata['countries'] = []
         if 'country' in movie_data:
-            for country in movie_data['country'].split(', '):
+            for country in movie_data.get('country', '').split(', '):
                 metadata['countries'].append(country)
 
-        # genres
         metadata['genres'] = []
-        for genre in movie_data['genre'].split(', '):
+        for genre in movie_data.get('genre', '').split(', '):
             metadata['genres'].append(genre.strip().title())
 
-        # MPAA rating
-        metadata['content_rating'] = movie_data.get('ratingAgeLimits', '')
+        metadata['content_rating'] = movie_data.get('ratingMPAA', '')
 
-        # originally available
         metadata['originally_available_at'] = self.api.Datetime.ParseDate(
-            # use world premiere date, or russian premiere
             movie_data['rentData'].get('premiereWorld') or movie_data['rentData'].get('premiereRU'), '%d.%m.%Y'
         ).date() if (('rentData' in movie_data) and
-                     [i for i in {'premiereWorld', 'premiereRU'} if i in movie_data['rentData']]
+                     [i for i in {'premiereWorld', 'premiereRU'} if i in movie_data['rentData'] and len(i) == 10]
                      ) else None
 
-        metadata['kp_rating'] = float(movie_data.get('ratingData', {}).get('rating', 0))
-        metadata['imdb_rating'] = float(movie_data.get('ratingData', {}).get('ratingIMDb', 0))
+        metadata['ratings']['kp'] = float(movie_data.get('ratingData', {}).get('rating', 0))
+        metadata['ratings']['imdb'] = float(movie_data.get('ratingData', {}).get('ratingIMDb', 0))
 
-        # summary
         summary_add = ''
         if movie_data.get('ratingData', {}):
             if 'rating' in movie_data['ratingData']:
@@ -213,12 +223,22 @@ class KinopoiskSource(SourceBase):
                 summary_add += '. '
         metadata['summary'] = summary_add + movie_data.get('description', '')
 
-        # main trailer
-        metadata['trailer'] = movie_data.get('videoURL', {}).get('hd', '')
+        metadata['main_trailer'] = movie_data.get('videoURL', {}).get('hd', '')
+        metadata['main_poster'] = {
+            'full': self.conf.poster % metadata['id'],
+            'thumb': self.conf.thumb % metadata['id']
+        }
+
+        if 'itunes' in movie_data:
+            metadata['meta_ids']['itunes'] = movie_data['itunes']['resourceId']
+
+        metadata['has_pre_sequel'] = movie_data.get('hasSequelsAndPrequelsFilms', 0)
+        metadata['has_similar'] = movie_data.get('hasSimilarFilms', 0)
+        metadata['seriesInfo'] = movie_data.get('seriesInfo', {})
 
     def load_staff(self, metadata):
         self.l('load staff from kinopoisk')
-        staff_data = self.make_request(self.c.kinopoisk.api.staff, metadata['id'])
+        staff_data = self.make_request(self.conf.api.staff, metadata['id'])
 
         if not staff_data:
             return
@@ -231,34 +251,34 @@ class KinopoiskSource(SourceBase):
 
         type_map = {'actor': 'roles', 'director': 'directors', 'writer': 'writers', 'producer': 'producers'}
 
-        for staff_type in staff_data['creators']:
+        for staff_type in staff_data.get('creators', []):
             for staff in staff_type:
                 if type_map.get(staff.get('professionKey'), {}):
                     people[type_map[staff.get('professionKey')]].append(dict(
                         nameRU=staff.get('nameRU'),  # staff name
                         nameEN=staff.get('nameEN'),  # staff name
-                        photo=self.c.kinopoisk.actor % staff['id'] if 'posterURL' in staff else None,  # staff photo
-                        role=" ".join(re.sub(r'\([^)]*\)', '', staff.get('description', '')).split())  # staff character
+                        photo=self.conf.actor % staff['id'] if 'posterURL' in staff else None,
+                        role=" ".join(re.sub(r'\([^)]*\)', '', staff.get('description', '')).split())
                     ))
         del people
 
     def load_reviews(self, metadata):
-        reviews_dict = self.make_request(self.c.kinopoisk.api.film_reviews, metadata['id'])
-        if not isinstance(reviews_dict, dict):
+        reviews_dict = self.make_request(self.conf.api.film_reviews, metadata['id'])
+        if not reviews_dict:
             return None
 
-        metadata['kp_reviews'] = []
+        reviews = metadata['reviews']['kp'] = []
         for review in reviews_dict.get('reviews', []):
-            metadata['kp_reviews'].append({
+            reviews.append({
                 'author': review.get('reviewAutor'),
                 'source': 'Kinopoisk',
                 'text': review.get('reviewDescription').replace(u'\x0b', u'')
             })
+        del reviews
 
     def load_similar(self, metadata):
         self.l('load similar from kinopoisk')
-        # hasRelatedFilms, hasSimilarFilms, hasSequelsAndPrequelsFilms
-        similar_data = self.make_request(self.c.kinopoisk.api.similar_films, metadata['id'])
+        similar_data = self.make_request(self.conf.api.list_films, metadata['id'], 'kp_similar_films')
 
         if not similar_data:
             return
@@ -267,11 +287,67 @@ class KinopoiskSource(SourceBase):
         for similar in similar_data.get('items', []):
             metadata['similar'].append(similar['nameRU'])
 
-    def load_gallery(self, metadata):
-        self.l('load gallery from kinopoisk')
-        gallery_data = self.make_request(self.c.kinopoisk.api.gallery, metadata['id'])
+    def load_sequel(self, metadata):
+        self.l('load sequel from kinopoisk')
+        sequel_data = self.make_request(self.conf.api.list_films, metadata['id'], 'kp_sequels_and_prequels_films')
 
-        if not gallery_data:
+        if not sequel_data:
             return
 
-        self.l('gallery_data = %s', gallery_data)
+        metadata['sequel'] = []
+        self.d('sequel_data = %s', sequel_data)
+
+    def load_gallery(self, metadata):
+        self.l('load gallery from kinopoisk')
+        gallery_data = self.make_request(self.conf.api.gallery, metadata['id'])
+
+        if not gallery_data or 'gallery' not in gallery_data:
+            return
+
+        posters = metadata['covers']['kp'] = {}
+        for i, poster in enumerate(gallery_data['gallery'].get('poster', [])):
+            posters[self.conf.images % poster['image']] = (
+                self.conf.images % poster['preview'],
+                i,
+                'xx',
+                0
+            )
+        del posters
+
+        backdrops = metadata['backdrops']['kp'] = {}
+        for i, kadr in enumerate(gallery_data['gallery'].get('kadr', [])):
+            backdrops[self.conf.images % kadr['image']] = (
+                self.conf.images % kadr['preview'],
+                i,
+                'xx',
+                0
+            )
+        del backdrops
+
+    def load_series(self, metadata, media):
+        self.l('load series from kinopoisk')
+        if not metadata['seriesInfo']:
+            return
+
+        episodes_list = []
+        for i in range(1, int(metadata['seriesInfo'].get('totalSeasons', 1))):
+            if i not in media.seasons:
+                continue
+            season_data = self.make_request(self.conf.api.series, metadata['id'], i, 1)
+            episodes_list.extend(season_data.get('items', []))
+            last_id = (episodes_list or [{}])[-1].get('positionInSeason', 0)
+            series_count = int(season_data.get('seasonSeriesCount', 0))
+
+            if season_data.get('pagesCount', 1) > 1 \
+                    and [x for x in range(int(last_id)+1, series_count+1) if x in media.seasons[i].episodes]:
+                for j in range(2, int(season_data.get('pagesCount', 1))+1):
+                    season_data = self.make_request(self.conf.api.series, metadata['id'], i, j)
+                    episodes_list.extend(season_data.get('items', []))
+
+        for serie in episodes_list:
+            if serie['positionInSeason'] not in media.seasons[serie['seasonNumber']].episodes:
+                continue
+            episode = metadata['seasons'][serie['seasonNumber']].episodes[serie['positionInSeason']]
+            episode.title = serie['nameRU'] or serie['nameEN']
+            episode.originally_available_at = self.api.Datetime.ParseDate(serie['premiereDate'], '%d.%m.%Y') if serie['premiereDate'] else None
+            episode.absolute_index = int(serie['globalPosition'])

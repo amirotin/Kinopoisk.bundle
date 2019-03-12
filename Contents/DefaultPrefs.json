@@ -1,36 +1,30 @@
 [
   {
-    "id": "ratings",
+    "id": "rating_source",
     "label": "Приоритетный источник рейтингов: ",
     "type": "enum",
-    "values": [
-      "Kinopoisk",
-      "Rotten Tomatoes",
-      "IMDb",
-      "The Movie Database"
-    ],
+    "values": ["Кинопоиск", "Rotten Tomatoes", "IMDb", "The Movie Database"],
     "default": "Rotten Tomatoes"
   },
   {
-    "id": "reviews",
+    "id": "review_source",
     "label": "Источник рецензий: ",
     "type": "enum",
-    "values": [
-      "Kinopoisk",
-      "Rotten Tomatoes"
-    ],
+    "values": ["Kinopoisk", "Rotten Tomatoes", "Отключено"],
     "default": "Kinopoisk"
   },
   {
-    "id": "trailers",
+    "id": "trailer_source",
     "label": "Источник трейлеров: ",
     "type": "enum",
-    "values": [
-      "Kinopoisk",
-      "IVA",
-      "All"
-    ],
-    "default": "Kinopoisk"
+    "values": ["Кинопоиск", "IVA", "Все", "Отключено"],
+    "default": "Кинопоиск"
+  },
+  {
+    "id": "trailer_limit",
+    "label": "Лимит трейлеров",
+    "type": "text",
+    "default": "5"
   },
   {
     "id": "extra_all",
@@ -45,10 +39,29 @@
     "default":"false"
   },
   {
-    "id": "rus_images",
-    "label": "Приоритет локализованным изображениям",
+    "id": "poster_priority",
+    "label": "Приоритет постеров",
+    "type": "enum",
+    "values": ["Локализованные", "Без текста", "По качеству"],
+    "default": "Без текста"
+  },
+  {
+    "id": "poster_limit",
+    "label": "Лимит постеров",
+    "type": "text",
+    "default": "5"
+  },
+  {
+    "id": "captcha_key",
+    "label": "Ключ anti-captcha.com",
+    "type":"text",
+    "default":""
+  },
+  {
+    "id": "captcha_report",
+    "label": "Отправлять запросы об ошибках разобра капчи",
     "type":"bool",
-    "default":"false"
+    "default":"true"
   },
   {
     "id":"sentry",
@@ -62,14 +75,14 @@
     "type":"enum",
     "values": [
       "SOCK5",
-      "HTTP",
-      "none"
+      "HTTP/HTTPS",
+      "Отключено"
     ],
     "default": "none"
   },
   {
     "id":"proxy_adr",
-    "label":"Адрес проски сервера",
+    "label":"Адрес проски сервера (должен поддерживать ssl)",
     "type":"text",
     "default":""
   },
@@ -97,7 +110,7 @@
     "default":"true"
   },
   {
-    "id":"debug",
+    "id":"trace",
     "label":"Включить подробную отладку",
     "type":"bool",
     "default":"false"

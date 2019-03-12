@@ -9,6 +9,7 @@ class Scoring(object):
         self.api = app.api
         self.c = app.c
         self.l = app.api.Log
+        self.trace = app.trace
 
     def _is_permitted_char(self, char):
         cat = unicodedata.category(char)[0]
@@ -42,13 +43,13 @@ class Scoring(object):
         return all(self._is_permitted_char(c) for c in text)
 
     def score(self, media, matches):
-        medianame = unicode(media.name)
-        self.l('score %s with matches %s', medianame, str(matches))
+        medianame = unicode(media.name if self.app.agent_type == 'movie' else media.show)
+        self.trace('score %s (%s) with matches %s', medianame, media.year, str(matches))
         name_type = 1 if self._is_valid(unicode(medianame)) else 0
         score_data = {n:k[name_type] for n,k in matches.items()}
+        self.trace('score_data = %s', score_data)
         res = process.extract(unicode(medianame), score_data, scorer=fuzz.UWRatio, limit=15)
         for r in res:
             matches[r[2]][4] += r[1]
             matches[r[2]][4] -= matches[r[2]][3] * self.c.score.penalty.rating
-            # score year mismatch
             self.score_year(matches[r[2]], media.year)

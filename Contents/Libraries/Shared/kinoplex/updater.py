@@ -1,6 +1,7 @@
 from os.path import split as split_path
 import shutil, time
 
+
 class Updater(object):
     def __init__(self, core, channel):
         self._core = core

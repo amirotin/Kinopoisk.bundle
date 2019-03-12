@@ -47,7 +47,7 @@ class PlexHTTPAdapter(HTTPAdapter):
 
 
 def getVersionInfo(core):
-    current_version = 'DEVELOP-050319'
+    current_version = 'DEVELOP-120319'
     current_mtime = 0
     version_path = core.storage.join_path(core.bundle_path, 'Contents', 'VERSION')
     if core.storage.file_exists(version_path):

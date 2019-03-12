@@ -26,7 +26,7 @@ class SourceBase(object):
         data = {}
         try:
             req = self.api.HTTP.Request(url, headers=headers)
-            if req.status_code == 200:
+            if req and req.status_code == 200:
                 data = getattr(self.api, obj_type).ObjectFromString(req.content)
         except Exception:
             self.l.Error('Something goes wrong with request', exc_info=True)

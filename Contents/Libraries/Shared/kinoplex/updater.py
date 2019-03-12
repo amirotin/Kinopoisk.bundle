@@ -30,26 +30,28 @@ class Updater(object):
         self._core.log.debug('Check for channel %s updates', self._channel)
 
         url = getattr(self, '%s_url' % self._channel)
-        git_data = self._core.data.json.from_string(self._core.networking.http_request(url).content)
-        map = {'beta': ('object', 'sha'), 'stable': {'tag_name'}}
-        try:
-            self.update_version = reduce(dict.get, map[self._channel], git_data)
-            if not self.update_version:
-                self._core.log.debug('No updates for channel %s', self._channel)
-                return
-            else:
-                self.update_version = self.update_version[:7]
-            self._core.log.debug('Current actual version for channel %s = %s', self._channel, self.update_version)
-            if self._core.storage.file_exists(self.version_path):
-                current_version = self._core.storage.load(self.version_path)
-                self._core.log.debug('Current actual version %s = %s', current_version, self.update_version)
-                if current_version == self.update_version:
-                    self._core.log.debug('Current version is actual')
+        req = self._core.networking.http_request(url)
+        if req:
+            git_data = self._core.data.json.from_string(req.content)
+            map = {'beta': ('object', 'sha'), 'stable': {'tag_name'}}
+            try:
+                self.update_version = reduce(dict.get, map[self._channel], git_data)
+                if not self.update_version:
+                    self._core.log.debug('No updates for channel %s', self._channel)
                     return
+                else:
+                    self.update_version = self.update_version[:7]
+                self._core.log.debug('Current actual version for channel %s = %s', self._channel, self.update_version)
+                if self._core.storage.file_exists(self.version_path):
+                    current_version = self._core.storage.load(self.version_path)
+                    self._core.log.debug('Current actual version %s = %s', current_version, self.update_version)
+                    if current_version == self.update_version:
+                        self._core.log.debug('Current version is actual')
+                        return
 
-            self.install_zip_from_url(self.archive_url % self.update_version)
-        except:
-            self._core.log.error('Something goes wrong with updater', exc_info=True)
+                self.install_zip_from_url(self.archive_url % self.update_version)
+            except:
+                self._core.log.error('Something goes wrong with updater', exc_info=True)
 
     @property
     def setup_stage(self):
@@ -96,7 +98,11 @@ class Updater(object):
                 self.copytree(s, d)
             else:
                 self._core.log.debug(u"Copying with copy2 '{}' into '{}'".format(s, d))
-                shutil.copy2(s, d)
+                try:
+                    shutil.copy2(s, d)
+                except IOError as err:
+                    self._core.log.error(u'Something wrong while file copy %s', err)
+
 
     def install_zip_from_url(self, url):
         stage_path = self.setup_stage

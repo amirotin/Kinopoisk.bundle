@@ -76,11 +76,7 @@ def _sset_object(key, ob, state):
     ob.__setstate__(state)
 
 _sget_none = _sset_none = lambda *args: None
-
-
-
-
-
+_config_vars = None
 
 def get_supported_platform():
     """Return this platform's maximum compatible version.

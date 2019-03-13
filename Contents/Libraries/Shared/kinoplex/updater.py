@@ -25,7 +25,7 @@ class Updater(object):
     @classmethod
     def auto_update_thread(cls, core, pref):
         cls(core, pref['update_channel']).checker()
-        core.runtime.create_timer(int(pref['update_interval'] or 1)*60, Updater.auto_update_thread, True, core=core, pref=pref)
+        core.runtime.create_timer(int(pref['update_interval'] or 1)*60, Updater.auto_update_thread, True, core.sandbox, True, core=core, pref=pref)
 
     def checker(self):
         self._core.log.debug('Check for channel %s updates', self._channel)

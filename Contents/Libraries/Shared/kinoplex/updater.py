@@ -157,7 +157,7 @@ class Updater(object):
             self._core.log.error('Error with utime function', exc_info=True)
         self.clean_old_bundle()
         if not self.activate():
-            self._core.log.critical(u"Unable to activate {}".format(self.identifier))
+            self._core.log.error(u"Unable to activate {}".format(self.identifier), exc_info=True)
             self.unstage()
             return False
 

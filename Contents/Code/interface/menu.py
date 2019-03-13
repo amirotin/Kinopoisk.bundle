@@ -38,3 +38,15 @@ def root(**kwargs):
     ))
 
     return oc
+
+@route(PREFIX + '/advanced')
+def advanced(**kwargs):
+    title = u'Расширенные настройки'
+    oc = ObjectContainer(title1=title, title2=title, header=title, view_group="FullDetails")
+    return oc
+
+@route(PREFIX + '/restart')
+def advanced(**kwargs):
+    title = u'Перезагрузка плагина'
+    oc = ObjectContainer(title1=title, title2=title, header=title, view_group="FullDetails")
+    return oc

@@ -12,6 +12,7 @@ class Updater(object):
         self.plugins_path = self._core.storage.join_path(self._core.app_support_path, 'Plug-ins')
         self.bundle_name = self.splitall(self._core.bundle_path)[-1]
         self.inactive = self._core.storage.data_item_path('Deactivated')
+        self.inactive_path = self._core.storage.join_path(self.inactive, self.identifier)
 
         self.version_path = self._core.storage.join_path(self._core.bundle_path, 'Contents', 'VERSION')
         self.update_version = None
@@ -24,7 +25,7 @@ class Updater(object):
     @classmethod
     def auto_update_thread(cls, core, pref):
         cls(core, pref['update_channel']).checker()
-        core.runtime.create_timer(int(pref['update_interval'] or 1)*60, Updater.auto_update_thread, True, core.sandbox, True, core=core, pref=pref)
+        core.runtime.create_timer(int(pref['update_interval'] or 1)*60, Updater.auto_update_thread, True, core=core, pref=pref)
 
     def checker(self):
         self._core.log.debug('Check for channel %s updates', self._channel)
@@ -65,10 +66,9 @@ class Updater(object):
         self._core.storage.remove_tree(self.stage_path)
 
     def cleanup(self):
-        inactive_path = self._core.storage.join_path(self.inactive, self.identifier)
-        if self._core.storage.dir_exists(inactive_path):
-            self._core.log.debug(u"Cleaning up after {} (removing {})".format(self.identifier, inactive_path))
-            self._core.storage.remove_tree(inactive_path)
+        if self._core.storage.dir_exists(self.inactive_path):
+            self._core.log.debug(u"Cleaning up after {} (removing {})".format(self.identifier, self.inactive_path))
+            self._core.storage.remove_tree(self.inactive_path)
 
     def splitall(self, path):
         allparts = list()
@@ -103,7 +103,6 @@ class Updater(object):
                 except IOError as err:
                     self._core.log.error(u'Something wrong while file copy %s', err, exc_info=True)
 
-
     def install_zip_from_url(self, url):
         stage_path = self.setup_stage
         try:
@@ -135,11 +134,6 @@ class Updater(object):
                     self._core.log.debug(u"Extracted {} to {} for {}".format(parts[-1], dir_path, self.identifier))
                 else:
                     self._core.log.debug(U"Not extracting {}".format(archive_name))
-
-            version_file_path = self._core.storage.join_path(self.stage, self.identifier, 'Contents', 'VERSION')
-            if not self._core.storage.file_exists(version_file_path):
-                self._core.storage.save(version_file_path, self.update_version)
-
         except:
             self._core.log.debug(u"Error extracting archive of {}".format(self.identifier))
             self.unstage()
@@ -151,10 +145,7 @@ class Updater(object):
         plist_path = self._core.storage.join_path(self.stage, self.identifier, 'Contents', 'Info.plist')
         plist_data = self._core.storage.load(plist_path, binary=False)
         self._core.storage.save(plist_path, plist_data.replace('{{version}}',self.update_version), binary=False)
-        try:
-            self._core.storage.utime(self._core.plist_path, None)
-        except:
-            self._core.log.error('Error with utime function', exc_info=True)
+
         self.clean_old_bundle()
         if not self.activate():
             self._core.log.error(u"Unable to activate {}".format(self.identifier), exc_info=True)
@@ -163,6 +154,16 @@ class Updater(object):
 
         self.unstage()
         self.cleanup()
+
+        version_file_path = self._core.storage.join_path(self.stage, self.identifier, 'Contents', 'VERSION')
+        if not self._core.storage.file_exists(version_file_path):
+            self._core.storage.save(version_file_path, self.update_version)
+
+        self._core.log.debug('Restarting plugin %s', self._core.plist_path)
+        try:
+            self._core.storage.utime(self._core.plist_path, None)
+        except:
+            self._core.log.error('Error with utime function', exc_info=True)
 
         return True
 

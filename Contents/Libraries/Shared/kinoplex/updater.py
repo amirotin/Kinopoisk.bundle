@@ -101,7 +101,7 @@ class Updater(object):
                 try:
                     shutil.copy2(s, d)
                 except IOError as err:
-                    self._core.log.error(u'Something wrong while file copy %s', err)
+                    self._core.log.error(u'Something wrong while file copy %s', err, exc_info=True)
 
 
     def install_zip_from_url(self, url):

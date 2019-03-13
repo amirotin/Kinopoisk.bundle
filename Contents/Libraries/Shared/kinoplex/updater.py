@@ -61,14 +61,14 @@ class Updater(object):
         self._core.storage.make_dirs(self.stage_path)
         return self.stage_path
 
-    def unstage(self):
-        self._core.log.debug(u"Unstaging files for {} (removing {})".format(self.identifier, self.stage_path))
-        self._core.storage.remove_tree(self.stage_path)
-
     def cleanup(self):
         if self._core.storage.dir_exists(self.inactive_path):
             self._core.log.debug(u"Cleaning up after {} (removing {})".format(self.identifier, self.inactive_path))
             self._core.storage.remove_tree(self.inactive_path)
+
+    def unstage(self):
+        self._core.log.debug(u"Unstaging files for {} (removing {})".format(self.identifier, self.stage_path))
+        self._core.storage.remove_tree(self.stage_path)
 
     def splitall(self, path):
         allparts = list()
@@ -134,6 +134,10 @@ class Updater(object):
                     self._core.log.debug(u"Extracted {} to {} for {}".format(parts[-1], dir_path, self.identifier))
                 else:
                     self._core.log.debug(U"Not extracting {}".format(archive_name))
+
+            version_file_path = self._core.storage.join_path(self.stage, self.identifier, 'Contents', 'VERSION')
+            if not self._core.storage.file_exists(version_file_path):
+                self._core.storage.save(version_file_path, self.update_version)
         except:
             self._core.log.debug(u"Error extracting archive of {}".format(self.identifier))
             self.unstage()
@@ -146,24 +150,21 @@ class Updater(object):
         plist_data = self._core.storage.load(plist_path, binary=False)
         self._core.storage.save(plist_path, plist_data.replace('{{version}}',self.update_version), binary=False)
 
-        self.clean_old_bundle()
+        #self.clean_old_bundle()
+        self.deactivate()
         if not self.activate():
             self._core.log.error(u"Unable to activate {}".format(self.identifier), exc_info=True)
+            self.reactivate()
             self.unstage()
             return False
 
-        self.unstage()
-        self.cleanup()
-
-        version_file_path = self._core.storage.join_path(self.stage, self.identifier, 'Contents', 'VERSION')
-        if not self._core.storage.file_exists(version_file_path):
-            self._core.storage.save(version_file_path, self.update_version)
-
-        self._core.log.debug('Restarting plugin %s', self._core.plist_path)
         try:
             self._core.storage.utime(self._core.plist_path, None)
         except:
             self._core.log.error('Error with utime function', exc_info=True)
+
+        self.unstage()
+        self.cleanup()
 
         return True
 
@@ -197,6 +198,19 @@ class Updater(object):
                             self._core.log.warn(u"Cannot Remove Old '{}' file/folder, does not exists.".format(old_item_path))
                     except:
                         self._core.log.exception(u"Error Removing Old '{}' file/folder".format(old_item_path))
+
+    def reactivate(self):
+        try:
+            self._core.log.debug("Reactivating the old installation of %s (moving from %s)" % (self.identifier, self.inactive_path))
+            self._core.storage.rename(self.inactive_path, self._core.storage.join_path(self.plugins_path, self.bundle_name))
+        except:
+            self._core.log.exception("Unable to reactivate the old installation of %s", self.identifier)
+
+    def deactivate(self):
+        self._core.log.debug("Deactivating an old installation of %s (moving to %s)" % (self.identifier, self.inactive_path))
+        self.cleanup()
+        self._core.storage.make_dirs(self.inactive_path)
+        self._core.storage.rename(self._core.storage.join_path(self.plugins_path, self.bundle_name), self.inactive_path)
 
     def activate(self, fail_count=0):
         final_path = self._core.storage.join_path(self.plugins_path, self.bundle_name)

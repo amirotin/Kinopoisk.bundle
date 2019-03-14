@@ -2,7 +2,7 @@
 import os, time, logging, urllib, sentry_sdk, socket
 
 from sentry_sdk.integrations.logging import LoggingIntegration
-from requests import Session, Response, RequestException
+from requests import Session, Response, exceptions
 from requests.adapters import HTTPAdapter
 from requests.structures import CaseInsensitiveDict
 from requests.utils import get_encoding_from_headers
@@ -121,8 +121,8 @@ def requests_http_request(self, url, values=None, headers={}, cacheTime=None, en
     req = None
     try:
         req = self.session.request(method or 'GET', url, headers=h, allow_redirects=follow_redirects, data=data)
-    except RequestException as e:
-        self._core.log.error("Failed request %s: %s", url, e)
+    except exceptions.RequestException as e:
+        self._core.log.debug("Failed request %s: %s", url, e)
 
     if url_cache != None:
         content_type = req.getheader('Content-Type', '')
@@ -185,7 +185,7 @@ def setup_network(core, prefs):
         total=3,
         read=3,
         connect=3,
-        backoff_factor=0.3,
+        backoff_factor=0.5,
         status_forcelist=(500, 502, 504),
     )
     core.networking.session.mount('https://', PlexHTTPAdapter(max_retries=retry))

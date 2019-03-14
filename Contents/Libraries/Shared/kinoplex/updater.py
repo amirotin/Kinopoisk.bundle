@@ -150,7 +150,6 @@ class Updater(object):
         plist_data = self._core.storage.load(plist_path, binary=False)
         self._core.storage.save(plist_path, plist_data.replace('{{version}}',self.update_version), binary=False)
 
-        #self.clean_old_bundle()
         self.deactivate()
         if not self.activate():
             self._core.log.error(u"Unable to activate {}".format(self.identifier), exc_info=True)
@@ -167,37 +166,6 @@ class Updater(object):
         self.cleanup()
 
         return True
-
-    def clean_old_bundle(self):
-        stage_paths = list()
-        root = self.bundle_name
-        stage_path = self.stage_path.lstrip('\\\?')
-        bundle_path = self._core.storage.abs_path(self._core.bundle_path).lstrip('\\\?')
-        stage_index = int([i for i, l in enumerate(self.splitall(stage_path)) if l == self.identifier][1])
-        bundle_index = int([i for i, l in enumerate(self.splitall(bundle_path)) if l == root][0])
-
-        for dirpath, dirname, filenames in self._core.storage.walk(stage_path):
-            for f in filenames:
-                filepath = self._core.storage.join_path(stage_path, dirpath, f).lstrip('\\\?')
-                filepaths = self.splitall(filepath)[stage_index:]
-                stage_paths.append(self._core.storage.join_path(root, *filepaths[1:]))
-
-        for dirpath, dirname, filenames in self._core.storage.walk(bundle_path):
-            for f in filenames:
-                filepath = self._core.storage.join_path(bundle_path, dirpath, f).lstrip('\\\?')
-                filepaths = self.splitall(filepath)[bundle_index:]
-                if self._core.storage.join_path(root, *filepaths[1:]) not in stage_paths:
-                    old_item_path = self._core.storage.abs_path(self._core.storage.join_path(self.plugins_path, root, *filepaths[1:]))
-                    self._core.log.debug(u"File/Folder does not exists in current Version.  Attempting to remove '{}'".format(old_item_path))
-                    try:
-                        if self._core.storage.dir_exists(old_item_path):
-                            self._core.storage.remove_tree(old_item_path)
-                        elif self._core.storage.file_exists(old_item_path):
-                            self._core.storage.remove(old_item_path)
-                        else:
-                            self._core.log.warn(u"Cannot Remove Old '{}' file/folder, does not exists.".format(old_item_path))
-                    except:
-                        self._core.log.exception(u"Error Removing Old '{}' file/folder".format(old_item_path))
 
     def reactivate(self):
         try:

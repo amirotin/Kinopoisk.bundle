@@ -162,7 +162,7 @@ def setup_sentry(core, platform):
         return event
 
     sentry_sdk.init(
-        dsn="https://72956c89a392413f81243895cd72bd4f@sentry.io/202380",
+        dsn="https://0314bc924fac45d8b91bc4d86b1b65f2@sentry.io/202380",
         integrations=[sentry_logging],
         environment='develop',
         before_send=before_send

@@ -108,7 +108,7 @@ class KinopoiskSource(SourceBase):
         if media.year is None and media.filename:
             self.d('no year, try guessit parse')
             try:
-                guessit_results = guessit(self.api.String.Unquote(media.filename))
+                guessit_results = guessit(self.api.String.Unquote(media.filename), {'no_user_config': True})
                 media.name = guessit_results['title']
                 if 'year' in guessit_results:
                     media.year = guessit_results['year']

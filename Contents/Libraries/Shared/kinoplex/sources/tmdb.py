@@ -226,25 +226,26 @@ class TMDBSource(SourceBase):
         self.d('UMP SEARCH')
         search_title = 'original_title' if metadata.get('original_title') else 'title'
         ump_dict = self._fetch_xml(self.conf.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
-        for video in ump_dict.xpath('//Video'):
-            try:
-                video_id = video.get('ratingKey')[video.get('ratingKey').rfind('/') + 1:]
-                score = int(video.get('score'))
-            except Exception, e:
-                continue
+        if ump_dict:
+            for video in ump_dict.xpath('//Video'):
+                try:
+                    video_id = video.get('ratingKey')[video.get('ratingKey').rfind('/') + 1:]
+                    score = int(video.get('score'))
+                except Exception, e:
+                    continue
 
-                # Make sure ID looks like an IMDb ID
-            if not re.match('t*[0-9]{7}', video_id):
-                continue
+                    # Make sure ID looks like an IMDb ID
+                if not re.match('t*[0-9]{7}', video_id):
+                    continue
 
-                # Deal with year
-            year = None
-            try: year = int(video.get('year'))
-            except: pass
-            if search_title == video.get('title'):
-                self.d("Found ump search match: %s (%s) score=%d, key=%s" % (video.get('title'), video.get('year'), score, video_id))
-                if score >= GOOD_SCORE:
-                    return video_id
+                    # Deal with year
+                year = None
+                try: year = int(video.get('year'))
+                except: pass
+                if search_title == video.get('title'):
+                    self.d("Found ump search match: %s (%s) score=%d, key=%s" % (video.get('title'), video.get('year'), score, video_id))
+                    if score >= GOOD_SCORE:
+                        return video_id
 
         return None
 

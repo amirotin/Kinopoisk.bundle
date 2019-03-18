@@ -9,6 +9,12 @@ class KinopoiskSource(SourceBase):
     def __init__(self, app):
         super(KinopoiskSource, self).__init__(app)
 
+    @staticmethod
+    def clear_text(text):
+        text = re.sub(r'[\x0b-\x0c]', '', (re.sub(r'[^\x00-\x7f]+', '', text)))
+        text = text.replace(u'\u2014', u'--').replace(u'\u2013', u'-')
+        return text
+
     def get_name(self, media):
         return self.api.String.Quote(media.name if self.app.agent_type == 'movie' else media.show, False)
 
@@ -275,7 +281,7 @@ class KinopoiskSource(SourceBase):
             reviews.append({
                 'author': review.get('reviewAutor'),
                 'source': 'Kinopoisk',
-                'text': review.get('reviewDescription').replace(u'\x0b', u'')
+                'text': re.sub(r'[\x00-\x08\x0b\x0c\x0e]', '', review.get('reviewDescription'))
             })
         del reviews
 

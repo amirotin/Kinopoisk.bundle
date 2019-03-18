@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from os.path import split as split_path
 import shutil, time
 
@@ -29,30 +30,30 @@ class Updater(object):
 
     def checker(self):
         self._core.log.debug('Check for channel %s updates', self._channel)
-
-        url = getattr(self, '%s_url' % self._channel)
-        req = self._core.networking.http_request(url)
-        if req:
-            git_data = self._core.data.json.from_string(req.content)
-            map = {'beta': ('object', 'sha'), 'stable': {'tag_name'}}
-            try:
-                self.update_version = reduce(dict.get, map[self._channel], git_data)
-                if not self.update_version:
-                    self._core.log.debug('No updates for channel %s', self._channel)
-                    return
-                else:
-                    self.update_version = self.update_version[:7]
-                self._core.log.debug('Current actual version for channel %s = %s', self._channel, self.update_version)
-                if self._core.storage.file_exists(self.version_path):
-                    current_version = self._core.storage.load(self.version_path)
-                    self._core.log.debug('Current actual version %s = %s', current_version, self.update_version)
-                    if current_version == self.update_version:
-                        self._core.log.debug('Current version is actual')
+        if self._channel != 'none':
+            url = getattr(self, '%s_url' % self._channel)
+            req = self._core.networking.http_request(url)
+            if req:
+                git_data = self._core.data.json.from_string(req.content)
+                map = {'beta': ('object', 'sha'), 'stable': {'tag_name'}}
+                try:
+                    self.update_version = reduce(dict.get, map[self._channel], git_data)
+                    if not self.update_version:
+                        self._core.log.debug('No updates for channel %s', self._channel)
                         return
+                    else:
+                        self.update_version = self.update_version[:7]
+                    self._core.log.debug('Current actual version for channel %s = %s', self._channel, self.update_version)
+                    if self._core.storage.file_exists(self.version_path):
+                        current_version = self._core.storage.load(self.version_path)
+                        self._core.log.debug('Current actual version %s = %s', current_version, self.update_version)
+                        if current_version == self.update_version:
+                            self._core.log.debug('Current version is actual')
+                            return
 
-                self.install_zip_from_url(self.archive_url % self.update_version)
-            except:
-                self._core.log.error('Something goes wrong with updater', exc_info=True)
+                    self.install_zip_from_url(self.archive_url % self.update_version)
+                except:
+                    self._core.log.error('Something goes wrong with updater', exc_info=True)
 
     @property
     def setup_stage(self):
@@ -135,7 +136,7 @@ class Updater(object):
                 else:
                     self._core.log.debug(U"Not extracting {}".format(archive_name))
 
-            version_file_path = self._core.storage.join_path(self.stage, self.identifier, 'Contents', 'VERSION')
+            version_file_path = self._core.storage.join_path(stage_path, 'Contents', 'VERSION')
             if not self._core.storage.file_exists(version_file_path):
                 self._core.storage.save(version_file_path, self.update_version)
         except:
@@ -146,9 +147,9 @@ class Updater(object):
         finally:
             archive.Close()
 
-        plist_path = self._core.storage.join_path(self.stage, self.identifier, 'Contents', 'Info.plist')
+        plist_path = self._core.storage.join_path(stage_path, 'Contents', 'Info.plist')
         plist_data = self._core.storage.load(plist_path, binary=False)
-        self._core.storage.save(plist_path, plist_data.replace('{{version}}',self.update_version), binary=False)
+        self._core.storage.save(plist_path, plist_data.replace('{{version}}', self.update_version), binary=False)
 
         self.deactivate()
         if not self.activate():

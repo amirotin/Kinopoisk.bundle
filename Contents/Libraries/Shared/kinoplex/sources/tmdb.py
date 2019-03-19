@@ -266,7 +266,7 @@ class TMDBSource(SourceBase):
                 source_id = metadata['meta_ids']['tmdb'] = self.find_tmdb(source_id).get('id')
 
         if source_id:
-            config_dict = self._fetch_json(self.conf.config)
+            config_dict = self._fetch_json(self.conf.api.config)
             movie_data = self._fetch_json(self.conf.api.data(self.app.agent_type, source_id, lang))
             if not isinstance(movie_data, dict) or 'overview' not in movie_data or movie_data['overview'] is None or movie_data['overview'] == "":
                 movie_data = self._fetch_json(self.conf.api.data(self.app.agent_type, source_id, ''))

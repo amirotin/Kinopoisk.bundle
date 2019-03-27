@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from base import SourceBase
 from urlparse import urlparse, urlunparse
-import json, time, urllib, re
-
+from types import MethodType
+import json, time, urllib, re, m3u8
 
 class KPTrailersSource(SourceBase):
     def __init__(self, app):
         super(KPTrailersSource, self).__init__(app)
+        self.api.Route.Connect('/video/kinopoisk/trailer', self.trailer_route)
 
     @staticmethod
     def extra_type(extra):
@@ -22,6 +23,32 @@ class KPTrailersSource(SourceBase):
     def chunks(data, size):
         for i in xrange(0, len(data), size):
             yield dict(data.items()[i:i+size])
+
+    def trailer_route(self, id, width, height):
+        link = 'https://strm.yandex.ru/vh-kp-converted/ott-content/%s/master.m3u8'
+        m3u8_obj = m3u8.loads(self.api.Core.networking.http_request(link % id).content)
+        m3u8_data = list()
+        m3u8_data.append('#EXTM3U')
+        m3u8_data.append('#EXT-X-VERSION:'+m3u8_obj.version)
+        for stream in m3u8_obj.playlists:
+            if stream.stream_info.resolution == (int(width), int(height)):
+                stream.uri = 'https://strm.yandex.ru/vh-kp-converted/ott-content/' + id + '/' + stream.uri
+                m3u8_data.append(str(stream))
+                break
+
+        audio = m3u8_obj.media[0]
+        audio.uri = 'https://strm.yandex.ru/vh-kp-converted/ott-content/' + id + '/' + audio.uri
+        m3u8_data.append(str(audio))
+
+        m3u8_obj = self.api.Framework.objects.Object(None, data="\n".join(m3u8_data))
+        m3u8_obj.SetHeader("Content-Type", "application/force-download")
+
+        def m3u8_Content(self):
+            self.SetHeader("Content-Disposition", 'attachment; filename="master.m3u8"')
+            return self.data
+
+        m3u8_obj.Content = MethodType(m3u8_Content, m3u8_obj)
+        return m3u8_obj
 
     def make_request(self, params):
         param_str = ''
@@ -122,13 +149,15 @@ class KPTrailersSource(SourceBase):
             self.conf.extras.base % metadata['id'],
             headers=self.c.kinopoisk.main.headers())
 
-        if 'showcaptcha' in video_page.url and self.api.Prefs['captcha_key']:
+        if 'showcaptcha' in video_page.url:
             self.d('CAPTCHA %s', video_page.url)
-            video_page = self.solve_captcha(video_page, 5)
+            if self.api.Prefs['captcha_key']:
+                video_page = self.solve_captcha(video_page, 5)
 
         page = self.api.HTML.ElementFromString(video_page.content)
 
         if len(page) != 0:
+            self.d('searching for videos')
             tv_match = re.compile(u"сезон (?P<season>\d{1,2})(?:.*эпизод (?P<episode>\d{1,2}))?")
             params = {}
             for link in page.xpath(self.conf.extras.re):
@@ -148,16 +177,20 @@ class KPTrailersSource(SourceBase):
                 season = episode = None
                 title = params[trailer['id']]['n']
                 clip_type = self.extra_type(title.lower())
-                try:
-                    trailer_id = urlparse(trailer['url']).path.rpartition('/')[2]
-                except:
-                    trailer_id = None
+
+                self.d('trailer %s, %s', title, clip_type)
+
+                #try:
+                #    trailer_id = urlparse(trailer['url']).path.rpartition('/')[2]
+                #except:
+                #    self.d('error parsing trailer url %s', trailer['url'])
+                #    trailer_id = None
 
                 tv_res = tv_match.search(title)
                 if tv_res:
                     season, episode = tv_res.groups()
 
-                if clip_type and trailer_id:
+                if clip_type:
                     extras.append({
                         'type': clip_type,
                         'views': trailer['views'],
@@ -165,7 +198,7 @@ class KPTrailersSource(SourceBase):
                         'episode': episode,
                         'extra': TYPE_MAP[clip_type](
                             title=title,
-                            url=self.conf.extras.clip_url % trailer_id,
+                            url=trailer['streamUrl'],
                             thumb='https:' + trailer['img'].get('bigPreviewUrl', {}).get('x1', '')
                         )
                     })

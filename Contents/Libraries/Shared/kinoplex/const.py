@@ -61,7 +61,7 @@ config['kinopoisk']['thumb'] = config.kinopoisk.images % 'film_iphone/iphone360_
 config['kinopoisk']['poster'] = config.kinopoisk.images % 'film_big/%s.jpg'
 
 config['kptrailers']['extras']['base'] = 'https://www.kinopoisk.ru/film/%s/video/'
-config['kptrailers']['extras']['re'] = "//table[ancestor::table[2]]//div[descendant::div]/a[@class='all']"
+config['kptrailers']['extras']['re'] = "//table[ancestor::table[2]]//div/a[@class='all' and contains(@href,'/film/')]"
 config['kptrailers']['extras']['recaptcha'] = "//form[@action='/checkcaptcha']"
 config['kptrailers']['extras']['captcha'] = 'https://www.kinopoisk.ru/checkcaptcha'
 config['kptrailers']['extras']['url'] = 'https://widgets.kinopoisk.ru/discovery/api/trailers?params=%s'

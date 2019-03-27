@@ -11,6 +11,13 @@
 				<string>https://static.video.yandex.net</string>
 			</array>
 		</dict>
+		<key>KPRUST</key>
+		<dict>
+			<key>URLPatterns</key>
+			<array>
+				<string>https://strm.yandex.ru</string>
+			</array>
+		</dict>
 		<key>IVA</key>
 		<dict>
 			<key>URLPatterns</key>

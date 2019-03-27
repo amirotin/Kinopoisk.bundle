@@ -125,7 +125,7 @@ def requests_http_request(self, url, values=None, headers={}, cacheTime=None, en
         self._core.log.debug("Failed request %s: %s", url, e)
 
     if url_cache != None:
-        content_type = req.getheader('Content-Type', '')
+        content_type = req.headers.get('Content-Type', '')
         if self._core.plugin_class == 'Agent' and not _content_type_allowed(content_type):
             self._core.log.debug("Not caching '%s' (content type '%s' not cacheable in Agent plug-ins)", url, content_type)
         else:
@@ -142,7 +142,6 @@ def setup_sentry(core, platform):
     )
 
     def before_send(event, hint):
-        core.log.debug('sentry error event = %s, hint = %s', event, hint)
         if 'exc_info' in hint:
             exc_type, exc_value, tb = hint['exc_info']
             if exc_type == socket.error:
@@ -159,6 +158,8 @@ def setup_sentry(core, platform):
             "Exception in thread named '_handle_request'"
         )):
             return None
+
+        core.log.debug('sentry error event = %s, hint = %s', event, hint)
         return event
 
     sentry_sdk.init(
@@ -224,7 +225,6 @@ def log_trace(self, message, *args):
 
 
 def init_class(cls_name, cls_base, gl, version=0):
-
     g = dict((k, v) for k, v in gl.items() if not k.startswith("_"))
     d = {
         'name': u'Кинопоиск2.0',
@@ -233,7 +233,7 @@ def init_class(cls_name, cls_base, gl, version=0):
         'primary_provider': True,
         'languages': ['ru', 'en'],
         'accepts_from': ['com.plexapp.agents.localmedia'],
-        'contributes_to': config.get('contrib',{}).get(cls_base.__name__,[]),
+        'contributes_to': config.get('contrib', {}).get(cls_base.__name__,[]),
         'c': config,
         'trace': log_trace,
         'search': search_event,

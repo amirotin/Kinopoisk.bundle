@@ -25,7 +25,12 @@ class Updater(object):
 
     @classmethod
     def auto_update_thread(cls, core, pref):
-        cls(core, pref['update_channel']).checker()
+        try:
+            cls(core, pref['update_channel']).checker()
+            core.storage.remove_data_item('error_update')
+        except Exception as e:
+            core.storage.save_data_item('error_update', str(e))
+
         core.runtime.create_timer(int(pref['update_interval'] or 1)*60, Updater.auto_update_thread, True, core.sandbox, True, core=core, pref=pref)
 
     def checker(self):
@@ -52,8 +57,9 @@ class Updater(object):
                             return
 
                     self.install_zip_from_url(self.archive_url % self.update_version)
-                except:
-                    self._core.log.error('Something goes wrong with updater', exc_info=True)
+                except Exception as e:
+                    self._core.log.error('Something goes wrong with updater: %s', e, exc_info=True)
+                    raise
 
     @property
     def setup_stage(self):
@@ -140,7 +146,7 @@ class Updater(object):
             if not self._core.storage.file_exists(version_file_path):
                 self._core.storage.save(version_file_path, self.update_version)
         except:
-            self._core.log.debug(u"Error extracting archive of {}".format(self.identifier))
+            self._core.log.error(u"Error extracting archive of {}".format(self.identifier), exc_info=True)
             self.unstage()
             return False
 

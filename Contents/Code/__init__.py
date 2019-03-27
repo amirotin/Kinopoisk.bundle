@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-import sys
 import interface
-
 from kinoplex.restore import restore_builtins
 from kinoplex.updater import Updater
-from interface.menu import *
+from interface import *
 
 # restore globals hack #
 module = sys.modules['__main__']
@@ -17,13 +15,14 @@ if Prefs['sentry']:
     setup_sentry(Core, Platform)
 
 def Start():
+    Log('Start function call')
     HTTP.CacheTime = 0 #CACHE_1WEEK
     HTTP.Headers['User-Agent'] = 'Plex Kinopoisk.bundle'
     if Prefs['update_channel'] != 'none':
         Thread.CreateTimer(int(Prefs['update_interval'] or 1)*60, Updater.auto_update_thread, core=Core, pref=Prefs)
 
 def ValidatePrefs():
-    pass
+    Log('ValidatePrefs function call')
 
 KinopoiskMovieAgent = init_class('KinopoiskMovieAgent', Agent.Movies, globals(), 0)
 #KinopoiskShowAgent = init_class('KinopoiskShowAgent', Agent.TV_Shows, globals(), 0)

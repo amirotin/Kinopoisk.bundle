@@ -24,20 +24,20 @@ class KPTrailersSource(SourceBase):
         for i in xrange(0, len(data), size):
             yield dict(data.items()[i:i+size])
 
-    def trailer_route(self, id, width, height):
-        link = 'https://strm.yandex.ru/vh-kp-converted/ott-content/%s/master.m3u8'
-        m3u8_obj = m3u8.loads(self.api.Core.networking.http_request(link % id).content)
+    def trailer_route(self, url, width, height):
+        link = url.rsplit('/', 1)[0]
+        m3u8_obj = m3u8.loads(self.api.Core.networking.http_request(url).content)
         m3u8_data = list()
         m3u8_data.append('#EXTM3U')
         m3u8_data.append('#EXT-X-VERSION:'+m3u8_obj.version)
         for stream in m3u8_obj.playlists:
             if stream.stream_info.resolution == (int(width), int(height)):
-                stream.uri = 'https://strm.yandex.ru/vh-kp-converted/ott-content/' + id + '/' + stream.uri
+                stream.uri = link + '/' + stream.uri
                 m3u8_data.append(str(stream))
                 break
 
         audio = m3u8_obj.media[0]
-        audio.uri = 'https://strm.yandex.ru/vh-kp-converted/ott-content/' + id + '/' + audio.uri
+        audio.uri = link + '/' + audio.uri
         m3u8_data.append(str(audio))
 
         m3u8_obj = self.api.Framework.objects.Object(None, data="\n".join(m3u8_data))

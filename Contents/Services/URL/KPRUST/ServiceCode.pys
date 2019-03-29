@@ -26,6 +26,5 @@ def MediaObjectsForURL(url):
 
 @indirect
 def PlayVideo(url, width, height):
-    link = 'http://127.0.0.1:32400/video/kinopoisk/trailer?id=%s&width=%s&height=%s&X-Plex-Token=%s'
-    id = url.split('/')[-2]
-    return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(link % (id, width, height, os.environ['PLEXTOKEN'])))
+    link = 'http://127.0.0.1:32400/video/kinopoisk/trailer?url=%s&width=%s&height=%s&X-Plex-Token=%s'
+    return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(link % (url, width, height, os.environ['PLEXTOKEN'])))

@@ -208,7 +208,7 @@ class KinopoiskSource(SourceBase):
         metadata['originally_available_at'] = self.api.Datetime.ParseDate(
             (
                 movie_data['rentData'].get('premiereWorld') or movie_data['rentData'].get('premiereRU')
-            ).replace('00', '01'), '%d.%m.%Y'
+            ).replace('00.', '01.'), '%d.%m.%Y'
         ).date() if (('rentData' in movie_data) and
                      [i for i in {'premiereWorld', 'premiereRU'} if
                       i in movie_data['rentData'] and len(movie_data['rentData'][i]) == 10]

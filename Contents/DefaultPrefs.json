@@ -52,6 +52,12 @@
     "default": "5"
   },
   {
+    "id": "desc_rating",
+    "label": "Отображать рейтинг в описании",
+    "type":"bool",
+    "default":"true"
+  },
+  {
     "id": "captcha_key",
     "label": "Ключ anti-captcha.com",
     "type":"text",

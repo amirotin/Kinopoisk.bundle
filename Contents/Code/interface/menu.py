@@ -105,8 +105,8 @@ def DownloadLogs():
             if os.path.isfile(os.path.realpath(plugin_log_file)):
                 plugin_log_path = plugin_log_file
 
-    if plugin_log_file:
-        server_log_file = os.path.realpath(os.path.join(plugin_log_file, "../../Plex Media Server.log"))
+    if plugin_log_path:
+        server_log_file = os.path.realpath(os.path.join(plugin_log_path, "../../Plex Media Server.log"))
         if os.path.isfile(server_log_file):
             server_log_path = server_log_file
 

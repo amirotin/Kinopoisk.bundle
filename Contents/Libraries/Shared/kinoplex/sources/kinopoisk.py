@@ -218,7 +218,7 @@ class KinopoiskSource(SourceBase):
         metadata['ratings']['imdb'] = float(movie_data.get('ratingData', {}).get('ratingIMDb', 0))
 
         summary_add = ''
-        if movie_data.get('ratingData', {}):
+        if self.api.Prefs['desc_rating'] and movie_data.get('ratingData', {}):
             if 'rating' in movie_data['ratingData']:
                 summary_add = u'КиноПоиск: ' + movie_data['ratingData'].get('rating').__str__()
                 if 'ratingVoteCount' in movie_data['ratingData']:

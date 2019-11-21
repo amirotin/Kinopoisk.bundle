@@ -24,7 +24,7 @@
 sudo apt update && sudo apt install -y git
 cd /var/lib/plexmediaserver/Library/Application\ Support/Plex\ Media\ Server/Plug-ins/
 sudo git clone https://github.com/amirotin/Kinopoisk.bundle.git
-sudo chown -R plex:plex KinoPoisk.bundle/
+sudo chown -R plex:plex Kinopoisk.bundle/
 sudo service plexmediaserver restart
 ```
 ### FreeBSD

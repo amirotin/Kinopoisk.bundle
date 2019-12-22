@@ -151,7 +151,8 @@ class TMDBSource(SourceBase):
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for i, movie in enumerate(sorted(tmdb_dict['results'], key=lambda k: k['popularity'], reverse=True)):
                 score = 100
-                score = score - abs(self.api.String.LevenshteinDistance(movie['title'].lower(), metadata.get(search_title)))
+                if movie.get('title'):
+                    score = score - abs(self.api.String.LevenshteinDistance(movie['title'].lower(), metadata.get(search_title)))
                 score = score - (2 * i)
 
                 if 'release_date' in movie and movie['release_date']:

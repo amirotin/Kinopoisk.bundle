@@ -27,7 +27,6 @@ class PlexResponse(Response):
     def __str__(self):
         return self.content
 
-
 class PlexHTTPAdapter(HTTPAdapter):
     def build_response(self, req, resp):
         response = PlexResponse()
@@ -163,7 +162,7 @@ def setup_sentry(core, platform):
         return event
 
     sentry_sdk.init(
-        dsn="https://0314bc924fac45d8b91bc4d86b1b65f2@sentry.io/202380",
+        dsn="https://4bb915c8aafb4b289878d8e8bb267326@sentry.io/1864363",
         integrations=[sentry_logging],
         environment='develop',
         before_send=before_send
@@ -227,7 +226,7 @@ def log_trace(self, message, *args):
 def init_class(cls_name, cls_base, gl, version=0):
     g = dict((k, v) for k, v in gl.items() if not k.startswith("_"))
     d = {
-        'name': u'Кинопоиск2.0',
+        'name': u'Кинопоиск 2.0',
         'api': namedtuple('Struct', g.keys())(*g.values()),
         'agent_type': 'movie' if cls_base.__name__ == 'Movies' else 'tv',
         'primary_provider': True,

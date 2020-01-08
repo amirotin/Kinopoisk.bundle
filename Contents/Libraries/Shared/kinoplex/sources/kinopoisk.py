@@ -46,6 +46,9 @@ class KinopoiskSource(SourceBase):
         cnt = 0
         if json:
             for i, movie in enumerate(json):
+                _year = movie['year'][:4]
+                if _year:
+                    _year = int(_year)
                 if movie['link'].startswith('/film/') \
                         and (
                             (movie['type'] in ['film', 'first'])

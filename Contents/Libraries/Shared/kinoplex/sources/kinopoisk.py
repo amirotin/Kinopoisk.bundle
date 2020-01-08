@@ -53,7 +53,7 @@ class KinopoiskSource(SourceBase):
                         and (
                             (movie['type'] in ['film', 'first'])
                             or ('is_serial' in movie and movie['is_serial'] in ('serial', 'mini', 'TV'))) \
-                        and int(movie['year'][:4]) <= self.api.Datetime.Now().year:
+                        and _year <= self.api.Datetime.Now().year:
                     matches[str(movie['id'])] = [movie['rus'], movie['name'], movie['year'], i,
                                                  5 if movie['type'] == 'first' else 0]
                     cnt = cnt + 1

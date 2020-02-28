@@ -33,6 +33,12 @@
     "default":"true"
   },
   {
+    "id": "lookup_by_kinopoisk_id",
+    "label": "Искать по ID Кинопоиска (kp-1234567 или kinopoisk-1234567 в пути к файлу)",
+    "type": "bool",
+    "default": "true"
+  },
+  {
     "id": "actors_eng",
     "label": "Имена актеров на английском",
     "type":"bool",

@@ -4,6 +4,7 @@ from base import SourceBase
 import re
 from guessit import guessit
 
+KP_REGEXP = re.compile(r'(kinopoisk|kp)-(\d+)')
 
 class KinopoiskSource(SourceBase):
     def __init__(self, app):
@@ -88,6 +89,34 @@ class KinopoiskSource(SourceBase):
         matches = {}
         search_sources = [self._main_search, self._api_search, self._suggest_search]
 
+        if self.api.Prefs['lookup_by_kinopoisk_id']:
+            # Ищем маркер kp- или kinopoisk- в пути
+            kinopoisk_ids = [m[1] for m in KP_REGEXP.findall(media.name)]
+            # Если есть путь к файлу
+            if media.filename:
+                _filename = self.api.String.Unquote(media.filename)
+                kinopoisk_ids += [m[1] for m in KP_REGEXP.findall(_filename)]
+
+            if kinopoisk_ids:
+                if len(kinopoisk_ids) > 1:
+                    self.d('WARNING: Found more than one Kinopoisk ID: %s' % kinopoisk_ids)
+                movie_id = kinopoisk_ids[0]
+                self.d('Found Kinopoisk ID: %s. Getting from Kinopoisk.ru' % movie_id)
+                (title, year) = self.find_by_id(movie_id)
+                if title is not None:
+                    results.Append(
+                        self.api.MetadataSearchResult(
+                            id=movie_id,
+                            name=title,
+                            lang=lang,
+                            score=100,
+                            year=year
+                        )
+                    )
+                    return
+                else:
+                    self.d('For Kinopoisk ID: %s. Media not found :(' % movie_id)
+
         if manual and self.api.Data.Exists(media.id):
             self.d('manual search - remove matched ids')
             self.api.Data.Remove(media.id)
@@ -105,7 +134,7 @@ class KinopoiskSource(SourceBase):
                 if title is not None:
                     results.Append(
                         self.api.MetadataSearchResult(
-                            id=id,
+                            id=movie_id,
                             name=title,
                             lang=lang,
                             score=100,

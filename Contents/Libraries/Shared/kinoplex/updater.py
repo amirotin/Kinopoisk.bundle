@@ -18,10 +18,10 @@ class Updater(object):
         self.version_path = self._core.storage.join_path(self._core.bundle_path, 'Contents', 'VERSION')
         self.update_version = None
 
-        self.stable_url = 'https://api.github.com/repos/amirotin/Kinopoisk.bundle/releases/latest'
-        self.beta_url = 'https://api.github.com/repos/amirotin/Kinopoisk.bundle/git/refs/heads/master'
+        self.stable_url = 'https://api.github.com/repos/ziemenz/Kinopoisk.bundle/releases/latest'
+        self.beta_url = 'https://api.github.com/repos/ziemenz/Kinopoisk.bundle/git/refs/heads/beta'
 
-        self.archive_url = 'https://github.com/amirotin/Kinopoisk.bundle/archive/%s.zip'
+        self.archive_url = 'https://github.com/ziemenz/Kinopoisk.bundle/archive/%s.zip'
 
     @classmethod
     def auto_update_thread(cls, core, pref):

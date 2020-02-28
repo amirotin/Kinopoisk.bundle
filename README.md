@@ -1,6 +1,6 @@
 # Kinopoisk.bundle
 
-> Документация в разработке. Последнее обноление 12.01.2019 г.
+> Документация в разработке. Последнее обновление 28.02.2020 г.
 
 Данный плагин является агентом для [Plex Media Server](https://plex.tv) и грузит информацию о фильмах с сайта [Кинопоиск](https://www.kinopoisk.ru).
 
@@ -9,7 +9,7 @@
 
 
 ## Пути и установка плагина
-Скачайте ZIP-архив с сайта [github.com](https://github.com/amirotin/Kinopoisk.bundle)
+Скачайте ZIP-архив с сайта [github.com](https://github.com/ziemenz/Kinopoisk.bundle)
 
 ![Скриншот](https://b.radikal.ru/b40/1901/0f/68f5052dddd3.png)
 ### Windows
@@ -23,7 +23,7 @@
 ```
 sudo apt update && sudo apt install -y git
 cd /var/lib/plexmediaserver/Library/Application\ Support/Plex\ Media\ Server/Plug-ins/
-sudo git clone https://github.com/amirotin/Kinopoisk.bundle.git
+sudo git clone https://github.com/ziemenz/Kinopoisk.bundle.git
 sudo chown -R plex:plex Kinopoisk.bundle/
 sudo service plexmediaserver restart
 ```
@@ -64,6 +64,8 @@ sudo service plexmediaserver restart
 
 ## Об авторе
 Автор: Artem Mirotin aka @amirotin <br />
+Автор доработок: Aleksey Ganuta aka [@ziemenz](https://t.me/@ziemenz) <br />
 Документация: Vladimir Sharapov aka [@EvelRus](mailto:evelrus@mail.ru)
 
+Постоянная ссылка на обновлённую версию плагина - [https://github.com/ziemenz/Kinopoisk.bundle](https://github.com/ziemenz/Kinopoisk.bundle)
 Постоянная ссылка на плагин - [https://github.com/amirotin/Kinopoisk.bundle](https://github.com/amirotin/Kinopoisk.bundle)

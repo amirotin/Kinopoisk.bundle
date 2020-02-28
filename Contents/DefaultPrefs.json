@@ -101,7 +101,7 @@
       "stable",
       "beta"
     ],
-    "default": "beta"
+    "default": "stable"
   },
   {
     "id": "update_interval",

@@ -46,7 +46,10 @@ class PlexHTTPAdapter(HTTPAdapter):
 
 
 def getVersionInfo(core):
-    current_version = 'DEVELOP-270319'
+    from kinoplex import __version__
+    branch = str(__version__[-1]).upper()
+    version = '.'.join(str(i) for i in __version__[:-1])
+    current_version = '%s-v%s' % (branch, version)
     current_mtime = 0
     version_path = core.storage.join_path(core.bundle_path, 'Contents', 'VERSION')
     if core.storage.file_exists(version_path):

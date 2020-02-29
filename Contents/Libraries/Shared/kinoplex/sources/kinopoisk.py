@@ -235,7 +235,10 @@ class KinopoiskSource(SourceBase):
         for genre in movie_data.get('genre', '').split(', '):
             metadata['genres'].append(genre.strip().title())
 
-        metadata['content_rating'] = movie_data.get('ratingMPAA', '')
+        if self.api.Prefs['content_rating'] == "MPAA":
+            metadata['content_rating'] = movie_data.get('ratingMPAA', '')
+        elif self.api.Prefs['content_rating'] == "Возраст" and movie_data.get('ratingAgeLimits'):
+            metadata['content_rating'] = '%s+' % movie_data.get('ratingAgeLimits')
 
         metadata['originally_available_at'] = self.api.Datetime.ParseDate(
             (

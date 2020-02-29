@@ -39,6 +39,17 @@
     "default": "true"
   },
   {
+    "id": "content_rating",
+    "label": "Возрастной рейтинг",
+    "type": "enum",
+    "values": [
+      "Не использовать",
+      "MPAA",
+      "Возраст"
+    ],
+    "default": "MPAA"
+  },
+  {
     "id": "actors_eng",
     "label": "Имена актеров на английском",
     "type":"bool",

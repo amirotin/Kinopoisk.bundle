@@ -1,5 +1,10 @@
 [
   {
+    "id": "github_issues",
+    "label": "(!) О всех ошибках, проблемах, пожелания в работе агента просьба сообщать в ветку на GitHub https://github.com/ziemenz/Kinopoisk.bundle/issues ",
+    "type":"bool"
+  },
+  {
     "id": "rating_source",
     "label": "Приоритетный источник рейтингов: ",
     "type": "enum",

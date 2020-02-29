@@ -210,7 +210,10 @@ class TMDBSource(SourceBase):
         tmdb_dict = self.get_tmdb_search(metadata, 'title', search_year, lang)
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for m in tmdb_dict.get('results', []):
-                self.d("Found title search match: %s (%s) score=%d, key=%s" % (m['title'], m['release_date'], m['score'], m['id']))
+                self.d("Found title search match: %s (%s) score=%d, key=%s" % (m.get('title'),
+                                                                               m.get('release_date'),
+                                                                               m.get('score', 0),
+                                                                               m.get('id')))
             best_result = max(tmdb_dict.get('results') or [{'score': 0}], key=lambda x: x['score'])
             if best_result['score'] >= GOOD_SCORE:
                 return best_result['id']
@@ -220,7 +223,10 @@ class TMDBSource(SourceBase):
             tmdb_dict = self.get_tmdb_search(metadata, 'original_title', search_year, lang)
             if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
                 for m in tmdb_dict.get('results', []):
-                    self.d("Found original title search match: %s (%s) score=%d, key=%s" % (m['title'], m['release_date'], m['score'], m['id']))
+                    self.d("Found original title search match: %s (%s) score=%d, key=%s" % (m.get('title'),
+                                                                               m.get('release_date'),
+                                                                               m.get('score', 0),
+                                                                               m.get('id')))
                 best_result = max(tmdb_dict.get('results') or [{'score': 0}], key=lambda x: x['score'])
                 if best_result['score'] >= GOOD_SCORE:
                     return best_result['id']

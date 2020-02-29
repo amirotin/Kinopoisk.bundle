@@ -1,7 +1,7 @@
 ---
 name: Feature request
 about: Ваши идеи и предложения по развитию агента
-title: ''
+title: "[Feature request]"
 labels: Feature request
 assignees: ''
 

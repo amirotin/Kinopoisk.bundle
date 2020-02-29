@@ -91,7 +91,9 @@ class KinopoiskSource(SourceBase):
 
         if self.api.Prefs['lookup_by_kinopoisk_id']:
             # Ищем маркер kp- или kinopoisk- в пути
-            kinopoisk_ids = [m[1] for m in KP_REGEXP.findall(media.name)]
+            kinopoisk_ids = []
+            if media.name:
+                kinopoisk_ids = [m[1] for m in KP_REGEXP.findall(media.name)]
             # Если есть путь к файлу
             if media.filename:
                 _filename = self.api.String.Unquote(media.filename)

@@ -16,8 +16,13 @@ class KinopoiskSource(SourceBase):
         text = text.replace(u'\u2014', u'--').replace(u'\u2013', u'-')
         return text
 
+    def _get_name(self, media):
+        return media.name if self.app.agent_type == 'movie' else media.show
+
     def get_name(self, media):
-        return self.api.String.Quote(media.name if self.app.agent_type == 'movie' else media.show, False)
+        _name = self._get_name(media)
+        if _name:
+            return self.api.String.Quote(_name, False)
 
     def _suggest_search(self, matches, media):
         json = self._fetch_json(

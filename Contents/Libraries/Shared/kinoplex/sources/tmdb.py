@@ -279,9 +279,10 @@ class TMDBSource(SourceBase):
                 self.update_ext_ids(metadata, 'tvdb', ext_ids.get('tvdb_id'))
 
             # Collections.
-            metadata['collections'] = []
-            if movie_data.get('belongs_to_collection', ''):
-                metadata['collections'].append(movie_data['belongs_to_collection']['name'].replace(' Collection', ''))
+            if self.api.Prefs['collections_id']:
+                metadata['collections'] = []
+                if movie_data.get('belongs_to_collection', ''):
+                    metadata['collections'].append(movie_data['belongs_to_collection']['name'].replace(' Collection', ''))
 
             # Studio.
             if 'production_companies' in movie_data and len(movie_data['production_companies']) > 0:

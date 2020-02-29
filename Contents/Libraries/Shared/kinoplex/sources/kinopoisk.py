@@ -253,18 +253,20 @@ class KinopoiskSource(SourceBase):
         metadata['ratings']['imdb'] = float(movie_data.get('ratingData', {}).get('ratingIMDb', 0))
 
         summary_add = ''
-        if self.api.Prefs['desc_rating'] and movie_data.get('ratingData', {}):
-            if 'rating' in movie_data['ratingData']:
-                summary_add = u'КиноПоиск: ' + movie_data['ratingData'].get('rating').__str__()
-                if 'ratingVoteCount' in movie_data['ratingData']:
-                    summary_add += ' (' + movie_data['ratingData'].get('ratingVoteCount').__str__() + ')'
-                summary_add += '. '
+        if self.api.Prefs['desc_show_slogan'] and movie_data.get('slogan'):
+            summary_add += '%s\n' % movie_data.get('slogan')
 
-            if 'ratingIMDb' in movie_data['ratingData']:
-                summary_add += u'IMDb: ' + movie_data['ratingData'].get('ratingIMDb').__str__()
-                if 'ratingIMDbVoteCount' in movie_data['ratingData']:
-                    summary_add += ' (' + movie_data['ratingData'].get('ratingIMDbVoteCount').__str__() + ')'
-                summary_add += '. '
+        if self.api.Prefs['desc_rating_kp'] and movie_data.get('ratingData', {}).get('rating'):
+            summary_add += u'КиноПоиск: %s' % movie_data['ratingData']['rating']
+            if self.api.Prefs['desc_rating_vote_count'] and movie_data['ratingData'].get('ratingVoteCount'):
+                summary_add += ' (%s)' % movie_data['ratingData']['ratingVoteCount']
+            summary_add += '\n' if self.api.Prefs['desc_rating_newline'] else '. '
+
+        if self.api.Prefs['desc_rating_imdb'] and movie_data.get('ratingData', {}).get('ratingIMDb'):
+            summary_add += u'IMDb: %s' % movie_data['ratingData']['ratingIMDb']
+            if self.api.Prefs['desc_rating_vote_count'] and movie_data['ratingData'].get('ratingIMDbVoteCount'):
+                summary_add += ' (%s)' % movie_data['ratingData']['ratingIMDbVoteCount']
+            summary_add += '\n' if self.api.Prefs['desc_rating_newline'] else '. '
         metadata['summary'] = summary_add + movie_data.get('description', '')
 
         metadata['main_trailer'] = movie_data.get('videoURL', {}).get('hd', '')

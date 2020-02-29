@@ -69,10 +69,34 @@
     "default": "5"
   },
   {
-    "id": "desc_rating",
-    "label": "Отображать рейтинг в описании",
+    "id": "desc_show_slogan",
+    "label": "Отображать слоган в описании",
+    "type": "bool",
+    "default": "false"
+  },
+  {
+    "id": "desc_rating_kp",
+    "label": "Отображать рейтинг Кинопоиск в описании",
     "type":"bool",
     "default":"true"
+  },
+  {
+    "id": "desc_rating_imdb",
+    "label": "Отображать рейтинг imdb в описании",
+    "type": "bool",
+    "default": "true"
+  },
+  {
+    "id": "desc_rating_vote_count",
+    "label": "Отображать количество проголосовавших в описании",
+    "type": "bool",
+    "default": "true"
+  },
+  {
+    "id": "desc_rating_newline",
+    "label": "Выводить рейтинги каждый с новой строки",
+    "type": "bool",
+    "default": "false"
   },
   {
     "id": "captcha_key",

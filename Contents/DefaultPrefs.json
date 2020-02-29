@@ -1,5 +1,11 @@
 [
   {
+    "id": "collections_id",
+    "label": "Включить отображение коллекций",
+    "type": "bool",
+    "default": "false"
+  },
+  {
     "id": "rating_source",
     "label": "Приоритетный источник рейтингов: ",
     "type": "enum",

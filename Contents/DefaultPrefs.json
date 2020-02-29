@@ -3,7 +3,7 @@
     "id": "collections_id",
     "label": "Включить отображение коллекций",
     "type": "bool",
-    "default": "false"
+    "default": "true"
   },
   {
     "id": "rating_source",

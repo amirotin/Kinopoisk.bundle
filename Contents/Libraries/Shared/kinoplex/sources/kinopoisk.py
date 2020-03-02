@@ -4,6 +4,7 @@ from base import SourceBase
 import re
 from guessit import guessit
 
+KP_REGEXP = re.compile(r'(kinopoisk|kp)-(\d+)')
 
 class KinopoiskSource(SourceBase):
     def __init__(self, app):
@@ -15,8 +16,13 @@ class KinopoiskSource(SourceBase):
         text = text.replace(u'\u2014', u'--').replace(u'\u2013', u'-')
         return text
 
+    def _get_name(self, media):
+        return media.name if self.app.agent_type == 'movie' else media.show
+
     def get_name(self, media):
-        return self.api.String.Quote(media.name if self.app.agent_type == 'movie' else media.show, False)
+        _name = self._get_name(media)
+        if _name:
+            return self.api.String.Quote(_name, False)
 
     def _suggest_search(self, matches, media):
         json = self._fetch_json(
@@ -46,11 +52,14 @@ class KinopoiskSource(SourceBase):
         cnt = 0
         if json:
             for i, movie in enumerate(json):
+                _year = movie['year'][:4]
+                if _year:
+                    _year = int(_year)
                 if movie['link'].startswith('/film/') \
                         and (
                             (movie['type'] in ['film', 'first'])
                             or ('is_serial' in movie and movie['is_serial'] in ('serial', 'mini', 'TV'))) \
-                        and int(movie['year'][:4]) <= self.api.Datetime.Now().year:
+                        and _year <= self.api.Datetime.Now().year:
                     matches[str(movie['id'])] = [movie['rus'], movie['name'], movie['year'], i,
                                                  5 if movie['type'] == 'first' else 0]
                     cnt = cnt + 1
@@ -85,6 +94,37 @@ class KinopoiskSource(SourceBase):
         matches = {}
         search_sources = [self._main_search, self._api_search, self._suggest_search]
 
+        if self.api.Prefs['lookup_by_kinopoisk_id']:
+            # Ищем маркер kp- или kinopoisk- в пути
+            kinopoisk_ids = []
+            _title = self._get_name(media)
+            if _title:
+                kinopoisk_ids = [m[1] for m in KP_REGEXP.findall(_title)]
+            # Если есть путь к файлу
+            if media.filename:
+                _filename = self.api.String.Unquote(media.filename)
+                kinopoisk_ids += [m[1] for m in KP_REGEXP.findall(_filename)]
+
+            if kinopoisk_ids:
+                if len(kinopoisk_ids) > 1:
+                    self.d('WARNING: Found more than one Kinopoisk ID: %s' % kinopoisk_ids)
+                movie_id = kinopoisk_ids[0]
+                self.d('Found Kinopoisk ID: %s. Getting from Kinopoisk.ru' % movie_id)
+                (title, year) = self.find_by_id(movie_id)
+                if title is not None:
+                    results.Append(
+                        self.api.MetadataSearchResult(
+                            id=movie_id,
+                            name=title,
+                            lang=lang,
+                            score=100,
+                            year=year
+                        )
+                    )
+                    return
+                else:
+                    self.d('For Kinopoisk ID: %s. Media not found :(' % movie_id)
+
         if manual and self.api.Data.Exists(media.id):
             self.d('manual search - remove matched ids')
             self.api.Data.Remove(media.id)
@@ -102,7 +142,7 @@ class KinopoiskSource(SourceBase):
                 if title is not None:
                     results.Append(
                         self.api.MetadataSearchResult(
-                            id=id,
+                            id=movie_id,
                             name=title,
                             lang=lang,
                             score=100,
@@ -203,7 +243,10 @@ class KinopoiskSource(SourceBase):
         for genre in movie_data.get('genre', '').split(', '):
             metadata['genres'].append(genre.strip().title())
 
-        metadata['content_rating'] = movie_data.get('ratingMPAA', '')
+        if self.api.Prefs['content_rating'] == "MPAA":
+            metadata['content_rating'] = movie_data.get('ratingMPAA', '')
+        elif self.api.Prefs['content_rating'] == "Возраст" and movie_data.get('ratingAgeLimits'):
+            metadata['content_rating'] = '%s+' % movie_data.get('ratingAgeLimits')
 
         metadata['originally_available_at'] = self.api.Datetime.ParseDate(
             (
@@ -218,18 +261,20 @@ class KinopoiskSource(SourceBase):
         metadata['ratings']['imdb'] = float(movie_data.get('ratingData', {}).get('ratingIMDb', 0))
 
         summary_add = ''
-        if self.api.Prefs['desc_rating'] and movie_data.get('ratingData', {}):
-            if 'rating' in movie_data['ratingData']:
-                summary_add = u'КиноПоиск: ' + movie_data['ratingData'].get('rating').__str__()
-                if 'ratingVoteCount' in movie_data['ratingData']:
-                    summary_add += ' (' + movie_data['ratingData'].get('ratingVoteCount').__str__() + ')'
-                summary_add += '. '
+        if self.api.Prefs['desc_show_slogan'] and movie_data.get('slogan'):
+            summary_add += '%s\n' % movie_data.get('slogan')
 
-            if 'ratingIMDb' in movie_data['ratingData']:
-                summary_add += u'IMDb: ' + movie_data['ratingData'].get('ratingIMDb').__str__()
-                if 'ratingIMDbVoteCount' in movie_data['ratingData']:
-                    summary_add += ' (' + movie_data['ratingData'].get('ratingIMDbVoteCount').__str__() + ')'
-                summary_add += '. '
+        if self.api.Prefs['desc_rating_kp'] and movie_data.get('ratingData', {}).get('rating'):
+            summary_add += u'КиноПоиск: %s' % movie_data['ratingData']['rating']
+            if self.api.Prefs['desc_rating_vote_count'] and movie_data['ratingData'].get('ratingVoteCount'):
+                summary_add += ' (%s)' % movie_data['ratingData']['ratingVoteCount']
+            summary_add += '\n' if self.api.Prefs['desc_rating_newline'] else '. '
+
+        if self.api.Prefs['desc_rating_imdb'] and movie_data.get('ratingData', {}).get('ratingIMDb'):
+            summary_add += u'IMDb: %s' % movie_data['ratingData']['ratingIMDb']
+            if self.api.Prefs['desc_rating_vote_count'] and movie_data['ratingData'].get('ratingIMDbVoteCount'):
+                summary_add += ' (%s)' % movie_data['ratingData']['ratingIMDbVoteCount']
+            summary_add += '\n' if self.api.Prefs['desc_rating_newline'] else '. '
         metadata['summary'] = summary_add + movie_data.get('description', '')
 
         metadata['main_trailer'] = movie_data.get('videoURL', {}).get('hd', '')

@@ -151,6 +151,8 @@ class TMDBSource(SourceBase):
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for i, movie in enumerate(sorted(tmdb_dict['results'], key=lambda k: k['popularity'], reverse=True)):
                 score = 100
+                if not movie.get('title') and movie.get('name'):
+                    movie['title'] = movie['name']
                 score = score - abs(self.api.String.LevenshteinDistance(movie['title'].lower(), metadata.get(search_title)))
                 score = score - (2 * i)
 
@@ -208,7 +210,10 @@ class TMDBSource(SourceBase):
         tmdb_dict = self.get_tmdb_search(metadata, 'title', search_year, lang)
         if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
             for m in tmdb_dict.get('results', []):
-                self.d("Found title search match: %s (%s) score=%d, key=%s" % (m['title'], m['release_date'], m['score'], m['id']))
+                self.d("Found title search match: %s (%s) score=%d, key=%s" % (m.get('title'),
+                                                                               m.get('release_date'),
+                                                                               m.get('score', 0),
+                                                                               m.get('id')))
             best_result = max(tmdb_dict.get('results') or [{'score': 0}], key=lambda x: x['score'])
             if best_result['score'] >= GOOD_SCORE:
                 return best_result['id']
@@ -218,7 +223,10 @@ class TMDBSource(SourceBase):
             tmdb_dict = self.get_tmdb_search(metadata, 'original_title', search_year, lang)
             if isinstance(tmdb_dict, dict) and 'results' in tmdb_dict:
                 for m in tmdb_dict.get('results', []):
-                    self.d("Found original title search match: %s (%s) score=%d, key=%s" % (m['title'], m['release_date'], m['score'], m['id']))
+                    self.d("Found original title search match: %s (%s) score=%d, key=%s" % (m.get('title'),
+                                                                               m.get('release_date'),
+                                                                               m.get('score', 0),
+                                                                               m.get('id')))
                 best_result = max(tmdb_dict.get('results') or [{'score': 0}], key=lambda x: x['score'])
                 if best_result['score'] >= GOOD_SCORE:
                     return best_result['id']
@@ -277,9 +285,10 @@ class TMDBSource(SourceBase):
                 self.update_ext_ids(metadata, 'tvdb', ext_ids.get('tvdb_id'))
 
             # Collections.
-            metadata['collections'] = []
-            if movie_data.get('belongs_to_collection', ''):
-                metadata['collections'].append(movie_data['belongs_to_collection']['name'].replace(' Collection', ''))
+            if self.api.Prefs['collections_id']:
+                metadata['collections'] = []
+                if movie_data.get('belongs_to_collection', ''):
+                    metadata['collections'].append(movie_data['belongs_to_collection']['name'].replace(' Collection', ''))
 
             # Studio.
             if 'production_companies' in movie_data and len(movie_data['production_companies']) > 0:

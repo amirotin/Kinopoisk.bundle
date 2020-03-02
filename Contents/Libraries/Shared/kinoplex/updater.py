@@ -4,9 +4,10 @@ import shutil, time
 
 
 class Updater(object):
-    def __init__(self, core, channel):
+    def __init__(self, core, channel, repo='amirotin'):
         self._core = core
         self._channel = channel
+        self._repo = repo
         self.identifier = self._core.identifier
         self.stage = self._core.storage.data_item_path('Stage')
         self.stage_path = self._core.storage.join_path(self.stage, self.identifier)
@@ -18,15 +19,15 @@ class Updater(object):
         self.version_path = self._core.storage.join_path(self._core.bundle_path, 'Contents', 'VERSION')
         self.update_version = None
 
-        self.stable_url = 'https://api.github.com/repos/amirotin/Kinopoisk.bundle/releases/latest'
-        self.beta_url = 'https://api.github.com/repos/amirotin/Kinopoisk.bundle/git/refs/heads/master'
+        self.stable_url = 'https://api.github.com/repos/%s/Kinopoisk.bundle/releases/latest' % self._repo
+        self.beta_url = 'https://api.github.com/repos/%s/Kinopoisk.bundle/git/refs/heads/beta' % self._repo
 
-        self.archive_url = 'https://github.com/amirotin/Kinopoisk.bundle/archive/%s.zip'
+        self.archive_url = 'https://github.com/%s/Kinopoisk.bundle/archive/%s.zip'
 
     @classmethod
     def auto_update_thread(cls, core, pref):
         try:
-            cls(core, pref['update_channel']).checker()
+            cls(core, pref['update_channel'], pref['update_repo']).checker()
             core.storage.remove_data_item('error_update')
         except Exception as e:
             core.storage.save_data_item('error_update', str(e))
@@ -56,7 +57,7 @@ class Updater(object):
                             self._core.log.debug('Current version is actual')
                             return
 
-                    self.install_zip_from_url(self.archive_url % self.update_version)
+                    self.install_zip_from_url(self.archive_url % (self._repo, self.update_version))
                 except Exception as e:
                     self._core.log.error('Something goes wrong with updater: %s', e, exc_info=True)
                     raise

@@ -12,7 +12,7 @@ globals = getattr(module, "__builtins__")["globals"]
 from kinoplex.utils import init_class, setup_network, setup_sentry
 setup_network(Core, Prefs)
 if Prefs['sentry']:
-    setup_sentry(Core, Platform)
+    setup_sentry(Core, Platform, Prefs)
 
 def Start():
     Log('Start function call')

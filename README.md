@@ -39,6 +39,11 @@ sudo service plexmediaserver restart
 
 Копируем выданный путь, добавляя в конце `/Library/Plex Media Server`, например, `/share/CACHEDEV1_DATA/.qpkg/PlexMediaServer/Library/Plex media Server`
 
+### Synology
+Распакуйте скачанный архив в папку `/volume1/Plex/Library/Application Support/Plex Media Server/Plug-ins`
+
+### Другие операционные системы
+
 Пути расположения папки с плагинами других систем ищите на официальном сайте [Plex.TV](https://support.plex.tv/articles/202915258-where-is-the-plex-media-server-data-directory-located/)
 
 

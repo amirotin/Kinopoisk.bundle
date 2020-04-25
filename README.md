@@ -66,6 +66,8 @@ sudo service plexmediaserver restart
 
 ## [Список изменений](CHANGELOG.md)
 
+## Known issues
+В случае если плагин не скачивает метаданные фильмов - необходимо отключить загрузку трейлеров с Кинопоиска.
 
 ## Об авторе
 Автор: Artem Mirotin aka @amirotin <br />

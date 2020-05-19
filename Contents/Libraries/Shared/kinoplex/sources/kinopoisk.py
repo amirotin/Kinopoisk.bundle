@@ -92,7 +92,6 @@ class KinopoiskSource(SourceBase):
     def search(self, results, media, lang, manual=False, primary=True):
         continue_search = True
         matches = {}
-        search_sources = [self._main_search, self._api_search, self._suggest_search]
 
         if self.api.Prefs['lookup_by_kinopoisk_id']:
             # Ищем маркер kp- или kinopoisk- в пути
@@ -124,6 +123,8 @@ class KinopoiskSource(SourceBase):
                     return
                 else:
                     self.d('For Kinopoisk ID: %s. Media not found :(' % movie_id)
+
+        search_sources = [self._main_search, self._api_search]
 
         if manual and self.api.Data.Exists(media.id):
             self.d('manual search - remove matched ids')

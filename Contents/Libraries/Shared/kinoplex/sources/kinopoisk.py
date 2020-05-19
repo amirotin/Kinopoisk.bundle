@@ -24,9 +24,9 @@ class KinopoiskSource(SourceBase):
         if _name:
             return self.api.String.Quote(_name, False)
 
-    def _suggest_search(self, matches, media):
+    def _suggest_search(self, matches, media_name):
         json = self._fetch_json(
-            self.conf.main.yasearch % self.get_name(media),
+            self.conf.main.yasearch % media_name,
             headers=self.conf.main.headers()
         )
         json = json[2] if 2 <= len(json) else []
@@ -44,9 +44,9 @@ class KinopoiskSource(SourceBase):
                     cnt = cnt + 1
         return cnt
 
-    def _main_search(self, matches, media):
+    def _main_search(self, matches, media_name):
         json = self._fetch_json(
-            self.conf.main.search % self.get_name(media),
+            self.conf.main.search % media_name,
             headers=self.conf.main.headers()
         )
         cnt = 0
@@ -65,9 +65,9 @@ class KinopoiskSource(SourceBase):
                     cnt = cnt + 1
         return cnt
 
-    def _api_search(self, matches, media):
+    def _api_search(self, matches, media_name):
         json = self._fetch_json(
-            self.conf.api.search % self.get_name(media),
+            self.conf.api.search % media_name,
             headers=self.conf.api.headers
         )
         json = json.get('data', {}).get('items', {})
@@ -165,8 +165,13 @@ class KinopoiskSource(SourceBase):
         for s in search_sources:
             s_match = {}
             if manual or continue_search:
-                cnt = s(matches if manual else s_match, media)
-                self.d('%s returned %s results', s.__name__, cnt)
+                _media_name = self.get_name(media)
+                cnt = s(matches if manual else s_match, _media_name)
+                self.d('%s returned %s results for query %s', s.__name__, cnt, _media_name)
+
+                if media.tree.title and media.tree.title != _media_name:
+                    cnt = s(matches if manual else s_match, self.api.String.Quote(media.tree.title, False))
+                    self.d('%s returned %s results for query %s', s.__name__, cnt, media.tree.title)
                 if not manual and continue_search:
                     self.app.score.score(media, s_match)
                     if s_match.values() and max(s_match.values(), key=lambda m: m[4])[4] >= 95:
@@ -181,7 +186,7 @@ class KinopoiskSource(SourceBase):
             self.app.score.score(media, matches)
 
         for movie_id, movie in matches.items():
-            if movie[4] > 0:
+            if movie[4] > 0 or (manual and not self.api.Prefs['manual_search_scoring']):
                 results.Append(
                     self.api.MetadataSearchResult(id=movie_id, name=movie[0], lang=lang, score=movie[4], year=movie[2]))
 

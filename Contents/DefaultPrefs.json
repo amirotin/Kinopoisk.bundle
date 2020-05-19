@@ -44,6 +44,12 @@
     "default": "true"
   },
   {
+    "id": "manual_search_scoring",
+    "label": "Убирать нерелевантные данные при ручном поиске",
+    "type": "bool",
+    "default": "false"
+  },
+  {
     "id": "content_rating",
     "label": "Возрастной рейтинг",
     "type": "enum",

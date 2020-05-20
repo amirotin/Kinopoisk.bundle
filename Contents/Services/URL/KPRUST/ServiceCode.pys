@@ -2,9 +2,13 @@ import os
 RE_STREAMS = Regex('(?:(#EXT-X-STREAM-INF)):(.*)')
 
 def extract_crumb(crumb):
-    key, value = crumb.split('=')
+    if '=' in crumb:
+        key, value = crumb.split('=')
+        value = value.strip('"')
+    else:
+        key = crumb
+        value = None
     key = key.lower()
-    value = value.strip('"')
     return key, value
 
 def MediaObjectsForURL(url):

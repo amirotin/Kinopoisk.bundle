@@ -124,7 +124,7 @@ def requests_http_request(self, url, values=None, headers={}, cacheTime=None, en
     try:
         req = self.session.request(method or 'GET', url, headers=h, allow_redirects=follow_redirects, data=data)
     except exceptions.RequestException as e:
-        self._core.log.debug("Failed request %s: %s", url, e)
+        self._core.log.error("Failed request %s: %s", url, e)
 
     if url_cache != None:
         content_type = req.headers.get('Content-Type', '')

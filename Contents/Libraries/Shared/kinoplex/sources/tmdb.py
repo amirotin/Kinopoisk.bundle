@@ -102,6 +102,8 @@ class TMDBSource(SourceBase):
         try:
             self.d("checking %s search vector: %s" % (search_type, url))
             res = self._fetch_xml(url)
+            if res is None:
+                return
             xpath = "//match[@lang='%s']" % lang if search_type=='hash' else '//match'
             for match in res.xpath(xpath):
                 id    = "tt%s" % match.get('guid')
@@ -137,7 +139,7 @@ class TMDBSource(SourceBase):
                 self.l('vector = %s', vector)
 
         except Exception, e:
-            self.l("freebase/proxy %s lookup failed: %s" % (search_type, str(e)))
+            self.l.Error("freebase/proxy %s lookup failed: %s" % (search_type, str(e)))
 
     def get_tmdb_search(self, metadata, search_title, search_year, lang):
         tmdb_dict = self._fetch_json(self.conf.api.search(
@@ -234,7 +236,7 @@ class TMDBSource(SourceBase):
         self.d('UMP SEARCH')
         search_title = 'original_title' if metadata.get('original_title') else 'title'
         ump_dict = self._fetch_xml(self.conf.ump_search % (metadata.get(search_title), metadata['year'], ','.join(plexHashes), lang, 0))
-        if ump_dict:
+        if ump_dict is not None and len(ump_dict):
             for video in ump_dict.xpath('//Video'):
                 try:
                     video_id = video.get('ratingKey')[video.get('ratingKey').rfind('/') + 1:]

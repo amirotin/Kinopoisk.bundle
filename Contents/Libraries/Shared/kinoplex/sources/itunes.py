@@ -27,7 +27,7 @@ class ITunesSource(SourceBase):
                 if trakt_url:
                     # load trakt streaming page for movie
                     trakt_page = self.api.HTML.ElementFromURL(self.conf.trakt_streaming % trakt_url, headers=self.c.headers.all, cacheTime=0)
-                    if trakt_page:
+                    if trakt_page is not None and len(trakt_page):
                         # search for itunes link
                         lnk = trakt_page.xpath(self.c.itunes.trakt_re_lnk)
                         if len(lnk) > 0:

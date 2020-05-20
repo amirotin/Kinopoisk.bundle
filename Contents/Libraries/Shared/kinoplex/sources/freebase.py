@@ -38,7 +38,7 @@ class FreebaseSource(SourceBase):
         if metadata['meta_ids'].get('imdb'):
             freebase = self._fetch_xml(self.conf.base % (metadata['meta_ids'].get('imdb')[2:], lang))
 
-        if freebase:
+        if freebase is not None and len(freebase):
             extras = []
             self.l('Parsing IVA extras')
             for extra in freebase.xpath('//extra'):

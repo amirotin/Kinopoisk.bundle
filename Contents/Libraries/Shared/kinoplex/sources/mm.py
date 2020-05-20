@@ -11,9 +11,14 @@ class MovieManiaSource(SourceBase):
             return
         json = None
         try:
-            json = self.api.JSON.ObjectFromURL(self.conf.base % (self.app.agent_type, metadata['meta_ids'].get('tmdb')))
-        except:
-            self.l('No data from MovieMania.io')
+            url = self.conf.base % (self.app.agent_type, metadata['meta_ids'].get('tmdb'))
+            req = self.api.HTTP.Request(url)
+            if req and req.status_code == 200:
+                json = self.api.JSON.ObjectFromString(req.content)
+            elif req.status_code == 404:
+                self.l('No data from MovieMania.io')
+        except Exception, e:
+            self.l.Error(e, exc_info=True)
 
         if json:
             posters = metadata['covers']['mm'] = {}

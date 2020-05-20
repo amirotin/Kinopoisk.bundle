@@ -23,7 +23,7 @@
     "label": "Источник трейлеров: ",
     "type": "enum",
     "values": ["Кинопоиск", "IVA", "Все", "Отключено"],
-    "default": "Кинопоиск"
+    "default": "Отключено"
   },
   {
     "id": "trailer_limit",
@@ -42,6 +42,12 @@
     "label": "Искать по ID КиноПоиска (kp-1234567 или kinopoisk-1234567 в пути к файлу или в названии файла)",
     "type": "bool",
     "default": "true"
+  },
+  {
+    "id": "manual_search_scoring",
+    "label": "Убирать нерелевантные данные при ручном поиске",
+    "type": "bool",
+    "default": "false"
   },
   {
     "id": "content_rating",

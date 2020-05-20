@@ -23,7 +23,7 @@ class SourceBase(object):
         pass
 
     def _fetch(self, obj_type, url, headers={'Accept-Encoding': 'gzip'}):
-        data = {}
+        data = None
         try:
             req = self.api.HTTP.Request(url, headers=headers)
             if req and req.status_code == 200:

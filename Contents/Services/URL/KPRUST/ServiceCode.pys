@@ -1,5 +1,11 @@
 import os
-RE_STREAMS = Regex('(?:(#EXT-X-STREAM-INF)):(?:BANDWIDTH=(\d+),?|AVERAGE-BANDWIDTH=(\d+),?|RESOLUTION=(\d+x\d+),?)*')
+RE_STREAMS = Regex('(?:(#EXT-X-STREAM-INF)):(.*)')
+
+def extract_crumb(crumb):
+    key, value = crumb.split('=')
+    key = key.lower()
+    value = value.strip('"')
+    return key, value
 
 def MediaObjectsForURL(url):
     m3u8_master = HTTP.Request(url).content
@@ -7,20 +13,21 @@ def MediaObjectsForURL(url):
     media = []
     last_qual = None
 
-    for i, stream in enumerate(streams):
-        if stream[3] != last_qual:
-            width, height = stream[3].split('x')
+    for i, (_, stream) in enumerate(streams):
+        info = dict(map(extract_crumb, stream.split(',')))
+        if 'resolution' in info and 'x' in info['resolution'] and info['resolution'] != last_qual:
+            width, height = info['resolution'].split('x')
             media.append(
                 MediaObject(
                     audio_channels=2,
                     optimized_for_streaming=False,
-                    bitrate=int(stream[2])/1024,
+                    bitrate=int(info['average-bandwidth'])/1024,
                     width=width,
                     height=height,
                     parts=[PartObject(key=Callback(PlayVideo, url=url, width=width, height=height))]
                 )
             )
-            last_qual = stream[3]
+            last_qual = info['resolution']
 
     return media
 

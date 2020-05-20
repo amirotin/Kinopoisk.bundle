@@ -124,7 +124,7 @@ def requests_http_request(self, url, values=None, headers={}, cacheTime=None, en
     try:
         req = self.session.request(method or 'GET', url, headers=h, allow_redirects=follow_redirects, data=data)
     except exceptions.RequestException as e:
-        self._core.log.debug("Failed request %s: %s", url, e)
+        self._core.log.error("Failed request %s: %s", url, e)
 
     if url_cache != None:
         content_type = req.headers.get('Content-Type', '')
@@ -136,7 +136,7 @@ def requests_http_request(self, url, values=None, headers={}, cacheTime=None, en
     return req
 
 
-def setup_sentry(core, platform):
+def setup_sentry(core, platform, prefs):
     core.log.debug('sentry install')
     sentry_logging = LoggingIntegration(
         level=logging.INFO,        # Capture info and above as breadcrumbs
@@ -164,8 +164,15 @@ def setup_sentry(core, platform):
         core.log.debug('sentry error event = %s, hint = %s', event, hint)
         return event
 
+    # Если включено автообновление и источник указан как amirotin, то все ошибки отправляем в проект KinoPlex AutoUpdate
+    if prefs['update_channel'] != 'none' and prefs['update_repo'] == "amirotin":
+        dsn = "https://2904103227024e22adb745fc6b56332e@sentry.letsnova.ru/3"
+    # Иначе отправляем в проект KinoPlex Legacy
+    else:
+        dsn = "https://93cb49b9aac14aa181b1cb5210ee6cf1@sentry.letsnova.ru/4"
+
     sentry_sdk.init(
-        dsn="https://4bb915c8aafb4b289878d8e8bb267326@sentry.io/1864363",
+        dsn=dsn,
         integrations=[sentry_logging],
         environment='develop',
         before_send=before_send
@@ -213,6 +220,8 @@ def update_event(self, metadata, media, lang, force=False, version=0, periodic=F
         ids = {}
         if self.api.Data.Exists(media.id):
             ids = self.api.Data.LoadObject(media.id)
+            if not ids.get('kp'):
+                ids['kp'] = metadata.id
         metadict = dict(id=metadata.id, meta_ids=ids, ratings={}, reviews={}, covers={}, backdrops={}, clips={}, seasons=tree())
         self.fire('update', metadict, media, lang, force, periodic)
         prepare_meta(metadict, metadata, self)

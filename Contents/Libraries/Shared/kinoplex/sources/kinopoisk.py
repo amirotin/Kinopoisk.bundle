@@ -24,9 +24,9 @@ class KinopoiskSource(SourceBase):
         if _name:
             return self.api.String.Quote(_name, False)
 
-    def _suggest_search(self, matches, media):
+    def _suggest_search(self, matches, media_name):
         json = self._fetch_json(
-            self.conf.main.yasearch % self.get_name(media),
+            self.conf.main.yasearch % media_name,
             headers=self.conf.main.headers()
         )
         json = json[2] if 2 <= len(json) else []
@@ -44,9 +44,9 @@ class KinopoiskSource(SourceBase):
                     cnt = cnt + 1
         return cnt
 
-    def _main_search(self, matches, media):
+    def _main_search(self, matches, media_name):
         json = self._fetch_json(
-            self.conf.main.search % self.get_name(media),
+            self.conf.main.search % media_name,
             headers=self.conf.main.headers()
         )
         cnt = 0
@@ -65,9 +65,9 @@ class KinopoiskSource(SourceBase):
                     cnt = cnt + 1
         return cnt
 
-    def _api_search(self, matches, media):
+    def _api_search(self, matches, media_name):
         json = self._fetch_json(
-            self.conf.api.search % self.get_name(media),
+            self.conf.api.search % media_name,
             headers=self.conf.api.headers
         )
         json = json.get('data', {}).get('items', {})
@@ -92,7 +92,6 @@ class KinopoiskSource(SourceBase):
     def search(self, results, media, lang, manual=False, primary=True):
         continue_search = True
         matches = {}
-        search_sources = [self._main_search, self._api_search, self._suggest_search]
 
         if self.api.Prefs['lookup_by_kinopoisk_id']:
             # Ищем маркер kp- или kinopoisk- в пути
@@ -100,15 +99,22 @@ class KinopoiskSource(SourceBase):
             _title = self._get_name(media)
             if _title:
                 kinopoisk_ids = [m[1] for m in KP_REGEXP.findall(_title)]
+            # При первом сканировании скорее всего будут отсутствовать
+            elif media and media.tree and media.tree.items:
+                _parts = [p.file for mi in media.tree.items for p in mi.parts]
+                kinopoisk_ids = [m[0] for fn in _parts for m in KP_REGEXP.findall(fn)]
+
             # Если есть путь к файлу
             if media.filename:
                 _filename = self.api.String.Unquote(media.filename)
                 kinopoisk_ids += [m[1] for m in KP_REGEXP.findall(_filename)]
 
             if kinopoisk_ids:
+                kinopoisk_ids = set(kinopoisk_ids)
+
                 if len(kinopoisk_ids) > 1:
                     self.d('WARNING: Found more than one Kinopoisk ID: %s' % kinopoisk_ids)
-                movie_id = kinopoisk_ids[0]
+                movie_id = next(iter(kinopoisk_ids))
                 self.d('Found Kinopoisk ID: %s. Getting from Kinopoisk.ru' % movie_id)
                 (title, year) = self.find_by_id(movie_id)
                 if title is not None:
@@ -124,6 +130,8 @@ class KinopoiskSource(SourceBase):
                     return
                 else:
                     self.d('For Kinopoisk ID: %s. Media not found :(' % movie_id)
+
+        search_sources = [self._main_search, self._api_search]
 
         if manual and self.api.Data.Exists(media.id):
             self.d('manual search - remove matched ids')
@@ -151,11 +159,12 @@ class KinopoiskSource(SourceBase):
                     )
                     return
 
-        if media.year is None and media.filename:
+        if (media.year is None or not media_name) and media.filename:
             self.d('no year, try guessit parse')
             try:
                 guessit_results = guessit(self.api.String.Unquote(media.filename), {'no_user_config': True})
-                media.name = guessit_results['title']
+                if 'title' in guessit_results:
+                        media.name = guessit_results['title']
                 if 'year' in guessit_results:
                     media.year = guessit_results['year']
             except Exception, e:
@@ -164,8 +173,13 @@ class KinopoiskSource(SourceBase):
         for s in search_sources:
             s_match = {}
             if manual or continue_search:
-                cnt = s(matches if manual else s_match, media)
-                self.d('%s returned %s results', s.__name__, cnt)
+                _media_name = self.get_name(media)
+                cnt = s(matches if manual else s_match, _media_name)
+                self.d('%s returned %s results for query %s', s.__name__, cnt, _media_name)
+
+                if media.tree.title and media.tree.title != _media_name:
+                    cnt = s(matches if manual else s_match, self.api.String.Quote(media.tree.title, False))
+                    self.d('%s returned %s results for query %s', s.__name__, cnt, media.tree.title)
                 if not manual and continue_search:
                     self.app.score.score(media, s_match)
                     if s_match.values() and max(s_match.values(), key=lambda m: m[4])[4] >= 95:
@@ -180,7 +194,7 @@ class KinopoiskSource(SourceBase):
             self.app.score.score(media, matches)
 
         for movie_id, movie in matches.items():
-            if movie[4] > 0:
+            if movie[4] > 0 or (manual and not self.api.Prefs['manual_search_scoring']):
                 results.Append(
                     self.api.MetadataSearchResult(id=movie_id, name=movie[0], lang=lang, score=movie[4], year=movie[2]))
 

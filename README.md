@@ -1,6 +1,6 @@
 # Kinopoisk.bundle
 
-> Документация в разработке. Последнее обновление 02.03.2020 г.
+> Документация в разработке. Последнее обновление 21.05.2020 г.
 
 Данный плагин является агентом для [Plex Media Server](https://plex.tv) и грузит информацию о фильмах с сайта [Кинопоиск](https://www.kinopoisk.ru).
 
@@ -74,5 +74,4 @@ sudo service plexmediaserver restart
 Автор доработок: Aleksey Ganuta aka [@ziemenz](https://t.me/ziemenz) <br />
 Документация: Vladimir Sharapov aka [@EvelRus](mailto:evelrus@mail.ru)
 
-Постоянная ссылка на обновлённую версию плагина - [https://github.com/ziemenz/Kinopoisk.bundle](https://github.com/ziemenz/Kinopoisk.bundle)
 Постоянная ссылка на плагин - [https://github.com/amirotin/Kinopoisk.bundle](https://github.com/amirotin/Kinopoisk.bundle)

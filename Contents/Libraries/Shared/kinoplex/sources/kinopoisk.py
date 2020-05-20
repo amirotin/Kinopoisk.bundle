@@ -159,7 +159,7 @@ class KinopoiskSource(SourceBase):
                     )
                     return
 
-        if media.year is None and media.filename:
+        if (media.year is None or not media_name) and media.filename:
             self.d('no year, try guessit parse')
             try:
                 guessit_results = guessit(self.api.String.Unquote(media.filename), {'no_user_config': True})

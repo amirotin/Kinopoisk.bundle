@@ -220,6 +220,8 @@ def update_event(self, metadata, media, lang, force=False, version=0, periodic=F
         ids = {}
         if self.api.Data.Exists(media.id):
             ids = self.api.Data.LoadObject(media.id)
+            if not ids.get('kp'):
+                ids['kp'] = metadata.id
         metadict = dict(id=metadata.id, meta_ids=ids, ratings={}, reviews={}, covers={}, backdrops={}, clips={}, seasons=tree())
         self.fire('update', metadict, media, lang, force, periodic)
         prepare_meta(metadict, metadata, self)

@@ -157,7 +157,9 @@ def setup_sentry(core, platform, prefs):
             'Cannot read model from',
             'Unable to deserialize object at',
             'Exception when constructing media object',
-            "Exception in thread named '_handle_request'"
+            "Exception in thread named '_handle_request'",
+            'Exception in I/O handler for fd %d',
+            'We seem to be missing the hash for media item',
         )):
             return None
 

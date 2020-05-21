@@ -13,7 +13,7 @@ class FanArtSource(SourceBase):
         try:
             json = self.api.JSON.ObjectFromURL(self.conf.movie % metadata['meta_ids'].get('tmdb'), headers=self.conf.headers(''))
         except:
-            self.l.Error('No data from FanArt.tv')
+            self.l.Debug('No data from FanArt.tv')
 
         if json:
             for key, value in json.items():

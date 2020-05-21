@@ -3,6 +3,39 @@ import re, unicodedata
 
 from fuzzywuzzy import fuzz, process
 
+# Регулярка для выделения года из строки
+EXTRACT_YEAR_REGEXP = re.compile('((19|20)\d{2})')
+
+
+def extract_year(value):
+    """
+    Функция выделения года из строки, числа или массива, в случае некорректных данных возвращает 0
+    @param value: значение, из которого необходимо выделить год
+    @type value: int or str or unicode or list or tuple
+    @return: Возвращает год в типе int
+    @rtype: int
+    """
+    # Если значение пустое(пустой массив, строка или 0), возвращаем 0
+    if not value:
+        return 0
+    # Если нам передали число, возвращаем его же
+    if isinstance(value, int):
+        return value
+
+    # Если нам передали строку, пытаемся выделить из нёё год
+    if isinstance(value, (str, unicode)):
+        m = EXTRACT_YEAR_REGEXP.match(value)
+        if m:
+            return int(m.groups()[0])
+        else:
+            return 0
+
+    # Если внезапно "прилетел" массив(такое бывает в редких случаях, то выбираем первый элемент и прогоняем его
+    # через эту функцию
+    if isinstance(value, (list, tuple)):
+        return extract_year(value[0])
+
+
 class Scoring(object):
     def __init__(self, app):
         self.app = app
@@ -24,9 +57,9 @@ class Scoring(object):
 
     def score_year(self, entry, fileyear):
         yearpenalty = self.c.score.penalty.year / 3  # if we have no year
-        mediayear = int(fileyear or 0)
-        year = entry[2] if isinstance( entry[2], int ) else int(re.sub('[^0-9]', '', entry[2] or '0') or '0')
-        if mediayear != 0 and year != 0:
+        mediayear = extract_year(fileyear)
+        year = extract_year(entry[2])
+        if mediayear and year:
             yeardiff = abs(mediayear - year)
             if yeardiff < 1:
                 yearpenalty = 0

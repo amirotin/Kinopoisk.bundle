@@ -177,7 +177,7 @@ class KinopoiskSource(SourceBase):
                 cnt = s(matches if manual else s_match, _media_name)
                 self.d('%s returned %s results for query %s', s.__name__, cnt, _media_name)
 
-                if media.tree.title and media.tree.title != _media_name:
+                if media.tree and media.tree.title and media.tree.title != _media_name:
                     cnt = s(matches if manual else s_match, self.api.String.Quote(media.tree.title, False))
                     self.d('%s returned %s results for query %s', s.__name__, cnt, media.tree.title)
                 if not manual and continue_search:

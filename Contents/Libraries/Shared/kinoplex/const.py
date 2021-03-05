@@ -55,8 +55,9 @@ config['kinopoisk']['main']['headers'] = lambda: {
 
 config['kinopoisk']['main']['yasearch'] = 'https://suggest-kinopoisk.yandex.net/suggest-kinopoisk?srv=kinopoisk&part=%s&nocookiesupport=yes'
 
-config['kinopoisk']['images'] = 'https://st.kp.yandex.net/images/%s'
-config['kinopoisk']['actor'] = config.kinopoisk.images % 'actor_iphone/iphone360_%s.jpg'
+config['kinopoisk']['images'] = '%s'
+config['kinopoisk']['imagesactor'] = 'https://st.kp.yandex.net/images/%s'
+config['kinopoisk']['actor'] = config.kinopoisk.imagesactor % 'actor_iphone/iphone360_%s.jpg'
 config['kinopoisk']['thumb'] = config.kinopoisk.images % 'film_iphone/iphone360_%s.jpg'
 config['kinopoisk']['poster'] = config.kinopoisk.images % 'film_big/%s.jpg'
 

@@ -11,7 +11,7 @@
 
 
 ## Пути и установка плагина
-Скачайте ZIP-архив с сайта [github.com](https://github.com/ziemenz/Kinopoisk.bundle)
+Скачайте ZIP-архив с сайта [github.com](https://github.com/Jenstel/Kinopoisk.bundle)
 
 ![Скриншот](https://b.radikal.ru/b40/1901/0f/68f5052dddd3.png)
 ### Windows

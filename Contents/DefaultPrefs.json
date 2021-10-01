@@ -115,6 +115,12 @@
     "type": "bool",
     "default": "true"
   },
+    {
+    "id": "api_key",
+    "label": "Ключ https://kinopoiskapiunofficial.tech/",
+    "type":"text",
+    "default":""
+  },
   {
     "id": "captcha_key",
     "label": "Ключ anti-captcha.com",

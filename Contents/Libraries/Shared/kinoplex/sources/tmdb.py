@@ -89,7 +89,7 @@ class TMDBSource(SourceBase):
             # Store the final score in the result vector.
             matches[key][5] = int(INITIAL_SCORE - dist - score_penalty)
 
-    def get_hash_results(self, meta, matches, search_type='hash', plex_hash='', lang='en'):
+    def get_hash_results(self, meta, matches, search_type='hash', plex_hash='', lang='en'):        
         if search_type is 'hash' and plex_hash is not None:
             url = '%s/movie/hash/%s/%s.xml' % (self.conf.hash_base, plex_hash[0:2], plex_hash)
         else:

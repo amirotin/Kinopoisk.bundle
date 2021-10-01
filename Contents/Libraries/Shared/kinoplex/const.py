@@ -22,11 +22,13 @@ config['contrib']['TV_Shows'] = ['com.plexapp.agents.themoviedb', 'com.plexapp.a
 # sources section
 # kinopoisk api
 config['kinopoisk']['api']['base'] = 'https://ext.kinopoisk.ru/ios/5.0.0/%s'
-config['kinopoisk']['api']['search'] = config.kinopoisk.api.base % 'getKPLiveSearch?keyword=%s'
-config['kinopoisk']['api']['film_details'] = config.kinopoisk.api.base % 'getKPFilmDetailView?filmID=%s&still_limit=50&sr=1'
+config['kinopoisk']['api']['search'] = 'https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=%s&page=%s'
+config['kinopoisk']['api']['film_details'] = 'https://kinopoiskapiunofficial.tech/api/v2.2/films/%s'
+config['kinopoisk']['api']['distributions'] = 'https://kinopoiskapiunofficial.tech/api/v2.2/films/%s/distributions'
 config['kinopoisk']['api']['list_films'] = config.kinopoisk.api.base % 'getKPFilmsList?filmID=%s&type=%s'
-config['kinopoisk']['api']['staff'] = config.kinopoisk.api.base % 'getStaffList?filmID=%s&type=all'
-config['kinopoisk']['api']['film_reviews'] = config.kinopoisk.api.base % 'getKPReviews?filmID=%s&type=0&sortType=0'
+config['kinopoisk']['api']['staff'] = 'https://kinopoiskapiunofficial.tech/api/v1/staff?filmId=%s'
+config['kinopoisk']['api']['similars'] = 'https://kinopoiskapiunofficial.tech/api/v2.2/films/%s/similars'
+config['kinopoisk']['api']['film_reviews'] = 'https://kinopoiskapiunofficial.tech/api/v1/reviews?filmId=%s&page=1'
 config['kinopoisk']['api']['gallery'] = config.kinopoisk.api.base % 'getGallery?filmID=%s'
 config['kinopoisk']['api']['series'] = config.kinopoisk.api.base % 'getKPSeriesList?serialID=%s&season=%s&page=%s'
 config['kinopoisk']['api']['hash'] = 'IDATevHDS7'
@@ -39,10 +41,11 @@ config['kinopoisk']['api']['headers'] = {
     'Accept': 'application/json',
     'device': 'android',
     'Android-Api-Version': '22',
+	'X-API-KEY': '93fbd7a8-47d8-4c0d-a822-8615816c9536',
     'User-Agent': 'Android client (4.4 / api22),ru.kinopoisk/4.2.1 (52)'
 }
 
-config['kinopoisk']['main']['search'] = 'https://www.kinopoisk.ru/search/suggest/?q=%s&topsuggest=true&ajax=1'
+config['kinopoisk']['main']['search'] = 'https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=%s&page=%s'
 config['kinopoisk']['main']['headers'] = lambda: {
     'Referer': 'https://www.kinopoisk.ru',
     'Accept': 'text/html, application/xhtml+xml, image/jxr, */*',
@@ -50,6 +53,7 @@ config['kinopoisk']['main']['headers'] = lambda: {
     'Accept-Language': 'en-US,en;q=0.8,ru;q=0.7,uk;q=0.5,de-DE;q=0.3,de;q=0.2',
     'User-agent': generate_user_agent(),
     'X-Compress': 'null',
+	'X-API-KEY': '93fbd7a8-47d8-4c0d-a822-8615816c9536',
     'Upgrade-Insecure-Requests': '1'
 }
 
@@ -58,8 +62,8 @@ config['kinopoisk']['main']['yasearch'] = 'https://suggest-kinopoisk.yandex.net/
 config['kinopoisk']['images'] = '%s'
 config['kinopoisk']['imagesactor'] = 'https://st.kp.yandex.net/images/%s'
 config['kinopoisk']['actor'] = config.kinopoisk.imagesactor % 'actor_iphone/iphone360_%s.jpg'
-config['kinopoisk']['thumb'] = config.kinopoisk.images % 'film_iphone/iphone360_%s.jpg'
-config['kinopoisk']['poster'] = config.kinopoisk.images % 'film_big/%s.jpg'
+config['kinopoisk']['thumb'] = 'https://kinopoiskapiunofficial.tech/images/posters/kp_small/%s.jpg'
+config['kinopoisk']['poster'] = 'https://kinopoiskapiunofficial.tech/images/posters/kp/%s.jpg'
 
 config['kptrailers']['extras']['base'] = 'https://www.kinopoisk.ru/film/%s/video/'
 config['kptrailers']['extras']['re'] = "//table[ancestor::table[2]]//div/a[@class='all' and contains(@href,'/film/')]"

@@ -25,8 +25,9 @@ class KinopoiskSource(SourceBase):
             return self.api.String.Quote(_name, False)
 
     def _suggest_search(self, matches, media_name):
+        page = 1
         json = self._fetch_json(
-            self.conf.main.yasearch % media_name,
+            self.conf.main.yasearch % media_name % page,
             headers=self.conf.main.headers()
         )
         json = json[2] if 2 <= len(json) else []
@@ -45,27 +46,52 @@ class KinopoiskSource(SourceBase):
         return cnt
 
     def _main_search(self, matches, media_name):
+        page = 1
         json = self._fetch_json(
-            self.conf.main.search % media_name,
+            self.conf.main.search % (media_name , page),
             headers=self.conf.main.headers()
         )
         cnt = 0
+        pagesCount = 0
+
         if json:
-            for i, movie in enumerate(json):
-                _year = movie['year'][:4]
+            for i, movie in enumerate(json['films']):
+                if movie['year'].isdigit():
+                    _year = movie['year'][:4]
                 if _year:
                     _year = int(_year)
-                if movie['link'].startswith('/film/') \
-                        and (
-                            (movie['type'] in ['film', 'first'])
+                if ((movie['type'] in ['FILM', 'FIRST', 'VIDEO'] and (movie.get('nameRu')))
                             or ('is_serial' in movie and movie['is_serial'] in ('serial', 'mini', 'TV'))) \
                         and _year <= self.api.Datetime.Now().year:
-                    matches[str(movie['id'])] = [movie['rus'], movie['name'], movie['year'], i,
-                                                 5 if movie['type'] == 'first' else 0]
+                    matches[str(movie['filmId'])] = [movie['nameRu'] if 'nameRu' in movie else movie['nameEn'], movie['nameEn'] if 'nameEn' in movie else movie['nameRu'], movie['year'], i,
+                                                5 if movie['type'] == 'first' else 0]
                     cnt = cnt + 1
+            page = page + 1
+
+            if json.get('pagesCount'):
+                pagesCount = int(json.get('pagesCount'))
+                while page <= pagesCount and pagesCount < 21: 
+                    json = self._fetch_json(
+                        self.conf.main.search % (media_name , page),
+                        headers=self.conf.main.headers()
+                    )
+                    for i, movie in enumerate(json['films']):
+                        if movie['year'].isdigit():
+                            _year = movie['year'][:4]
+                        if _year:
+                            _year = int(_year)
+                        if ((movie['type'] in ['FILM', 'FIRST', 'VIDEO'] and (movie.get('nameRu')))
+                                    or ('is_serial' in movie and movie['is_serial'] in ('serial', 'mini', 'TV'))) \
+                                and _year <= self.api.Datetime.Now().year:
+                            matches[str(movie['filmId'])] = [movie['nameRu'] if 'nameRu' in movie else movie['nameEn'], movie['nameEn'] if 'nameEn' in movie else movie['nameRu'], movie['year'], i,
+                                                        5 if movie['type'] == 'first' else 0]
+                            cnt = cnt + 1
+                    page = page + 1
         return cnt
 
     def _api_search(self, matches, media_name):
+        return self._main_search(matches, media_name)
+
         json = self._fetch_json(
             self.conf.api.search % media_name,
             headers=self.conf.api.headers
@@ -201,100 +227,102 @@ class KinopoiskSource(SourceBase):
         if manual:
             for result in results:
                 result.thumb = self.conf.thumb % result.id
-                self.l(result.thumb)
+                #self.l(result)
         results.Sort('score', descending=True)
 
     def make_request(self, link, *args):
         data = {}
         try:
             data = self.api.JSON.ObjectFromURL(
-                link % args, headers=self.conf.api.headers)
+                link % args, headers=self.conf.api.headers)            
         except:
             self.l.Error('Something goes wrong with request', exc_info=True)
         finally:
-            data = data.get('data', {})
+            if not (isinstance(data, list)):        
+                if data.get('data'):
+                    data = data.get('data', {})
         return data
 
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update KinopoiskSource')
         self.load_meta(metadata)
+        self.load_distribution(metadata)
         self.load_staff(metadata)
         self.load_reviews(metadata)
-        self.load_gallery(metadata)
-
-        if metadata['has_similar']:
-            self.load_similar(metadata)
-        #if metadata['has_pre_sequel']:
-        #    self.load_sequel(metadata)
+        self.load_similar(metadata)    
 
         if self.app.agent_type == 'tv':
             self.load_series(metadata, media)
 
+        #self.load_gallery(metadata)    
+
     def load_meta(self, metadata):
         movie_data = self.make_request(self.conf.api.film_details, metadata['id'])
+
         if not movie_data:
             return
-
+        
         repls = (u' (видео)', u' (ТВ)', u' (мини-сериал)', u' (сериал)')
-        metadata['title'] = reduce(lambda a, kv: a.replace(kv, ''), repls, movie_data['nameRU'])
+        metadata['title'] = reduce(lambda a, kv: a.replace(kv, ''), repls, movie_data['nameRu'])
 
-        if 'nameEN' in movie_data and movie_data['nameEN'] != movie_data['nameRU']:
-            metadata['original_title'] = movie_data['nameEN']
+        if 'nameOriginal' in movie_data and movie_data['nameOriginal'] != movie_data['nameRu']:
+            metadata['original_title'] = movie_data['nameOriginal']
 
         metadata['tagline'] = movie_data.get('slogan', '')
-        metadata['content_rating_age'] = int(movie_data.get('ratingAgeLimits') or 0)
+        metadata['content_rating_age'] = int(movie_data.get('ratingAgeLimits').replace('age', '') or 0)
         try:
-            metadata['year'] = int(movie_data.get('year', '').split('-', 1)[0] or 0)
+            metadata['year'] = int(movie_data.get('year', ''))
         except:
             self.l('error converting year (%s) to int', movie_data.get('year'))
 
         metadata['countries'] = []
-        if 'country' in movie_data:
-            for country in movie_data.get('country', '').split(', '):
-                metadata['countries'].append(country)
+        if 'countries' in movie_data:
+            for country in movie_data.get('countries', []):
+                metadata['countries'].append(country['country'])
 
         metadata['genres'] = []
-        for genre in movie_data.get('genre', '').split(', '):
-            metadata['genres'].append(genre.strip().title())
+        for genre in movie_data.get('genres', []):
+            metadata['genres'].append(genre['genre'])
 
         if self.api.Prefs['content_rating'] == "MPAA":
-            metadata['content_rating'] = movie_data.get('ratingMPAA', '')
+            metadata['content_rating'] = movie_data.get('ratingMpaa', '')
         elif self.api.Prefs['content_rating'] == "Возраст" and movie_data.get('ratingAgeLimits'):
             metadata['content_rating'] = '%s+' % movie_data.get('ratingAgeLimits')
 
-        metadata['originally_available_at'] = self.api.Datetime.ParseDate(
-            (
-                movie_data['rentData'].get('premiereWorld') or movie_data['rentData'].get('premiereRU')
-            ).replace('00.', '01.'), '%d.%m.%Y'
-        ).date() if (('rentData' in movie_data) and
-                     [i for i in {'premiereWorld', 'premiereRU'} if
-                      i in movie_data['rentData'] and len(movie_data['rentData'][i]) == 10]
-                     ) else None
 
-        metadata['ratings']['kp'] = float(movie_data.get('ratingData', {}).get('rating', 0))
-        metadata['ratings']['imdb'] = float(movie_data.get('ratingData', {}).get('ratingIMDb', 0))
+        if movie_data.get('premiereWorld'):
+            metadata['originally_available_at'] = self.api.Datetime.ParseDate(
+                (
+                    movie_data['rentData'].get('premiereWorld') or movie_data['rentData'].get('premiereRU')
+                ).replace('00.', '01.'), '%d.%m.%Y'
+            ).date() if (('rentData' in movie_data) and
+                        [i for i in {'premiereWorld', 'premiereRU'} if
+                        i in movie_data['rentData'] and len(movie_data['rentData'][i]) == 10]
+                        ) else None
+
+        metadata['ratings']['kp'] = float(movie_data.get('ratingKinopoisk', 0))
+        metadata['ratings']['imdb'] = float(movie_data.get('ratingImdb', 0))
 
         summary_add = ''
         if self.api.Prefs['desc_show_slogan'] and movie_data.get('slogan'):
             summary_add += '%s\n' % movie_data.get('slogan')
 
-        if self.api.Prefs['desc_rating_kp'] and movie_data.get('ratingData', {}).get('rating'):
-            summary_add += u'КиноПоиск: %s' % movie_data['ratingData']['rating']
-            if self.api.Prefs['desc_rating_vote_count'] and movie_data['ratingData'].get('ratingVoteCount'):
-                summary_add += ' (%s)' % movie_data['ratingData']['ratingVoteCount']
+        if movie_data.get('ratingKinopoisk'):
+            summary_add += u'КиноПоиск: %s' % movie_data.get('ratingKinopoisk')
+            if movie_data.get('ratingKinopoiskVoteCount'):
+                summary_add += ' (%s)' % movie_data.get('ratingKinopoiskVoteCount')
             summary_add += '\n' if self.api.Prefs['desc_rating_newline'] else '. '
 
-        if self.api.Prefs['desc_rating_imdb'] and movie_data.get('ratingData', {}).get('ratingIMDb'):
-            summary_add += u'IMDb: %s' % movie_data['ratingData']['ratingIMDb']
-            if self.api.Prefs['desc_rating_vote_count'] and movie_data['ratingData'].get('ratingIMDbVoteCount'):
-                summary_add += ' (%s)' % movie_data['ratingData']['ratingIMDbVoteCount']
+        if movie_data.get('ratingImdb'):
+            summary_add += u'IMDB: %s' % movie_data.get('ratingImdb')
+            if movie_data.get('ratingImdbVoteCount'):
+                summary_add += ' (%s)' % movie_data.get('ratingImdbVoteCount')
             summary_add += '\n' if self.api.Prefs['desc_rating_newline'] else '. '
         metadata['summary'] = summary_add + movie_data.get('description', '')
-
-        metadata['main_trailer'] = movie_data.get('videoURL', {}).get('hd', '')
+        
         metadata['main_poster'] = {
-            'full': self.conf.poster % metadata['id'],
-            'thumb': self.conf.thumb % metadata['id']
+            'full': movie_data.get('posterUrl'),
+            'thumb': movie_data.get('posterUrlPreview')
         }
 
         if 'itunes' in movie_data:
@@ -303,6 +331,20 @@ class KinopoiskSource(SourceBase):
         metadata['has_pre_sequel'] = movie_data.get('hasSequelsAndPrequelsFilms', 0)
         metadata['has_similar'] = movie_data.get('hasSimilarFilms', 0)
         metadata['seriesInfo'] = movie_data.get('seriesInfo', {})
+
+    def load_distribution(self, metadata):
+        self.l('load distribution from kinopoisk')
+        distribution_data = self.make_request(self.conf.api.distributions, metadata['id'])
+
+        if not distribution_data:
+            return
+
+        if not distribution_data.get('items'):
+            return
+
+        for distr in distribution_data.get('items', []):
+            if distr.get('type') == 'WORLD_PREMIER':
+                metadata['originally_available_at'] = self.api.Datetime.ParseDate((distr.get('date')).replace('00.', '01.'), '%Y-%m-%d').date()     
 
     def load_staff(self, metadata):
         self.l('load staff from kinopoisk')
@@ -319,15 +361,14 @@ class KinopoiskSource(SourceBase):
 
         type_map = {'actor': 'roles', 'director': 'directors', 'writer': 'writers', 'producer': 'producers'}
 
-        for staff_type in staff_data.get('creators', []):
-            for staff in staff_type:
-                if type_map.get(staff.get('professionKey'), {}):
-                    people[type_map[staff.get('professionKey')]].append(dict(
-                        nameRU=staff.get('nameRU'),  # staff name
-                        nameEN=staff.get('nameEN'),  # staff name
-                        photo=self.conf.actor % staff['id'] if 'posterURL' in staff else None,
-                        role=" ".join(re.sub(r'\([^)]*\)', '', staff.get('description', '')).split())
-                    ))
+        for staff in staff_data:
+            if type_map.get(staff.get('professionKey').lower(), {}):
+                people[type_map[staff.get('professionKey').lower()]].append(dict(
+                    nameRU=staff.get('nameRu'),  # staff name
+                    nameEN=staff.get('nameEn'),  # staff name
+                    photo=staff.get('posterUrl') if 'posterUrl' in staff else None,
+                    role=staff.get('description', '')
+                ))
         del people
 
     def load_reviews(self, metadata):
@@ -337,23 +378,30 @@ class KinopoiskSource(SourceBase):
 
         reviews = metadata['reviews']['kp'] = []
         for review in reviews_dict.get('reviews', []):
+            image = ''
+            if review.get('reviewType') == 'NEGATIVE':
+                image = 'rottentomatoes://image.review.rotten'
+            if review.get('reviewType') == 'POSITIVE':
+                image = 'rottentomatoes://image.review.fresh'     
             reviews.append({
                 'author': review.get('reviewAutor'),
                 'source': 'Kinopoisk',
+                'image': image,
                 'text': re.sub(r'[\x00-\x08\x0b\x0c\x0e]', '', review.get('reviewDescription'))
             })
         del reviews
 
     def load_similar(self, metadata):
         self.l('load similar from kinopoisk')
-        similar_data = self.make_request(self.conf.api.list_films, metadata['id'], 'kp_similar_films')
+        similar_data = self.make_request(self.conf.api.similars, metadata['id'])
 
         if not similar_data:
             return
 
         metadata['similar'] = []
         for similar in similar_data.get('items', []):
-            metadata['similar'].append(similar['nameRU'])
+            if similar.get('nameRu'):
+                metadata['similar'].append(similar['nameRu'])
 
     def load_sequel(self, metadata):
         self.l('load sequel from kinopoisk')

@@ -44,7 +44,9 @@ class ITunesSource(SourceBase):
                 self.d('search for itunes on rottentomatoes')
                 omdb = self.api.JSON.ObjectFromURL(self.conf.omdb % imdb_id)
                 if 'tomatoURL' in omdb and omdb['tomatoURL'] != 'N/A':
-                    page = self.api.HTML.ElementFromURL(omdb['tomatoURL'].replace('http://', 'https://'), headers=self.c.headers.all, cacheTime=0)
+                    tomatoURL = omdb['tomatoURL'].replace('http://', 'https://')
+                    tomatoURL = tomatoURL.replace('https://rottentomatoes.com', 'https://www.rottentomatoes.com')
+                    page = self.api.HTML.ElementFromURL(tomatoURL, headers=self.c.headers.all, cacheTime=0)
                     lnk = page.xpath(self.c.itunes.rt_re)
                     if len(lnk) > 0:
                         return re.search('(?<=id)[0-9]+', lnk[0]).group(0)

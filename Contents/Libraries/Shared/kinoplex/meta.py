@@ -261,6 +261,8 @@ def parse_meta(metadata_dict, metadata, api):
             continue
 
         dict_value = metadata_dict[attr_name]
+        if dict_value is None:
+            continue
         try:
             if isinstance(dict_value, list):
 
@@ -333,11 +335,11 @@ def prepare_meta(metadata_dict, metadata, app):
                 meta_staff.photo = staff.get('photo', '')
                 meta_staff.role = staff.get('role', '')
 
-    metadata.reviews.clear()
-    for review in metadata_dict.get('reviews', []):
-        r = metadata.reviews.new()
-        r.author = review.get('author')
-        r.source = review.get('source')
-        r.image = review.get('image')
-        r.link = review.get('link')
-        r.text = review.get('text')
+    if not (metadata_dict.get('reviews') is None): 
+        for review in metadata_dict.get('reviews', []):
+            r = metadata.reviews.new()
+            r.author = review.get('author')
+            r.source = review.get('source')
+            r.image = review.get('image')
+            r.link = review.get('link')
+            r.text = review.get('text')

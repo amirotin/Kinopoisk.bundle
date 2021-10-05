@@ -161,10 +161,11 @@
     "label":"Репозиторий обновлений",
     "type": "enum",
     "values": [
+	  "jenstel",
       "amirotin",
       "ziemenz"
     ],
-    "default": "amirotin"
+    "default": "jenstel"
   },
   {
     "id":"update_channel",

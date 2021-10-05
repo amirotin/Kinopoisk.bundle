@@ -4,7 +4,7 @@ import shutil, time
 
 
 class Updater(object):
-    def __init__(self, core, channel, repo='amirotin'):
+    def __init__(self, core, channel, repo='jenstel'):
         self._core = core
         self._channel = channel
         self._repo = repo

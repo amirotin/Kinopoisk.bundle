@@ -70,7 +70,7 @@ sudo service plexmediaserver restart
 
 ## Об авторе
 Автор: Artem Mirotin aka @amirotin<br />
-Автор доработок: Aleksey Ganuta aka [@ziemenz](https://t.me/ziemenz) и Jenstel<br />
+Автор доработок: Aleksey Ganuta aka [@ziemenz](https://t.me/ziemenz) и [@Jenstel](https://t.me/Jenstel)<br />
 Документация: Vladimir Sharapov aka [@EvelRus](mailto:evelrus@mail.ru)
 
 Постоянная ссылка на обновленный плагин - [https://github.com/Jenstel/Kinopoisk.bundle](https://github.com/Jenstel/Kinopoisk.bundle)

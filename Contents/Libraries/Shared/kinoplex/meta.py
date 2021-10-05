@@ -151,7 +151,7 @@ class MovieValidator(Validator):
         except:
             limit = 5
         self.api.Log('Приоритет постеров %s, лимит %s', priority, limit)
-
+        
         cnt = 0
         for source in order_list:
             cnt += len(document['covers'].get(source, {}))
@@ -176,10 +176,10 @@ class MovieValidator(Validator):
             for poster, thumb in sorted(posters[source].items(), key=lambda k: k[1][1]):
                 if len(result) == limit:
                     break
-                result[poster] = (thumb[0], len(result)+1)
+                result[poster] = (thumb[0], len(result)+1)        
 
-        if not result:
-            result[document['main_poster']['full']] = (document['main_poster']['thumb'], 1)
+        if not result or 1==1:
+            result[document['main_poster']['full']] = (document['main_poster']['thumb'], 1)   
 
         return result
 

@@ -236,6 +236,8 @@ def log_trace(self, message, *args):
     if self.api.Prefs['trace']:
         self.api.Core.log.log(TRACE_LEVEL_NUM, message, *args)
 
+def log(self, message, *args):
+    self.api.Core.log.log(TRACE_LEVEL_NUM, message, *args)
 
 def init_class(cls_name, cls_base, gl, version=0):
     g = dict((k, v) for k, v in gl.items() if not k.startswith("_"))
@@ -249,6 +251,7 @@ def init_class(cls_name, cls_base, gl, version=0):
         'contributes_to': config.get('contrib', {}).get(cls_base.__name__,[]),
         'c': config,
         'trace': log_trace,
+        'log': log,
         'search': search_event,
         'update': update_event,
         'version': version

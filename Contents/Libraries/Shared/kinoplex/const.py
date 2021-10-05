@@ -29,7 +29,7 @@ config['kinopoisk']['api']['list_films'] = config.kinopoisk.api.base % 'getKPFil
 config['kinopoisk']['api']['staff'] = 'https://kinopoiskapiunofficial.tech/api/v1/staff?filmId=%s'
 config['kinopoisk']['api']['similars'] = 'https://kinopoiskapiunofficial.tech/api/v2.2/films/%s/similars'
 config['kinopoisk']['api']['film_reviews'] = 'https://kinopoiskapiunofficial.tech/api/v1/reviews?filmId=%s&page=1'
-config['kinopoisk']['api']['gallery'] = config.kinopoisk.api.base % 'getGallery?filmID=%s'
+config['kinopoisk']['api']['gallery'] = 'https://kinopoiskapiunofficial.tech/api/v2.1/films/%s/frames'
 config['kinopoisk']['api']['series'] = config.kinopoisk.api.base % 'getKPSeriesList?serialID=%s&season=%s&page=%s'
 config['kinopoisk']['api']['hash'] = 'IDATevHDS7'
 config['kinopoisk']['api']['hash_headers'] = ['x-signature', 'x-timestamp']

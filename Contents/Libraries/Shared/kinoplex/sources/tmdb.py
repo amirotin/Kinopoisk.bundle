@@ -260,6 +260,7 @@ class TMDBSource(SourceBase):
         return None
 
     def find_tmdb(self, imdb_id):
+        self.l('find TMDBSource ID by IMDB')
         resp_data = self._fetch_json(self.conf.api.find(imdb_id))
         if resp_data:
             tmdb_data = resp_data.get('%s_results' % self.app.agent_type, [{}])
@@ -269,6 +270,11 @@ class TMDBSource(SourceBase):
 
     def update(self, metadata, media, lang, force=False, periodic=False):
         self.l('update from TMDBSource')
+        if metadata['meta_ids'].get('imdb'):
+            find = self.find_tmdb(metadata['meta_ids'].get('imdb'))
+            if find:
+                metadata['meta_ids'][self.source_name] = find.get('id')
+
         source_id = metadata['meta_ids'].get(self.source_name)
         if not source_id:
             source_id = metadata['meta_ids'][self.source_name] = self._search(metadata, media, lang)

@@ -250,17 +250,21 @@ class KinopoiskSource(SourceBase):
         self.load_staff(metadata)
         self.load_reviews(metadata)
         self.load_similar(metadata)    
+        self.load_gallery(metadata)    
 
         if self.app.agent_type == 'tv':
             self.load_series(metadata, media)
 
-        #self.load_gallery(metadata)    
+        
 
     def load_meta(self, metadata):
         movie_data = self.make_request(self.conf.api.film_details, metadata['id'])
 
         if not movie_data:
             return
+
+        if movie_data.get('imdbId'):
+            metadata['meta_ids']['imdb'] = movie_data.get('imdbId');  
         
         repls = (u' (видео)', u' (ТВ)', u' (мини-сериал)', u' (сериал)')
         metadata['title'] = reduce(lambda a, kv: a.replace(kv, ''), repls, movie_data['nameRu'])
@@ -419,25 +423,24 @@ class KinopoiskSource(SourceBase):
         self.l('load gallery from kinopoisk')
         gallery_data = self.make_request(self.conf.api.gallery, metadata['id'])
 
-        if not gallery_data or 'gallery' not in gallery_data:
-            return
-
         posters = metadata['covers']['kp'] = {}
-        for i, poster in enumerate(gallery_data['gallery'].get('poster', [])):
-            posters[self.conf.images % poster['image']] = (
-                self.conf.images % poster['preview'],
-                i,
-                'xx',
-                0
-            )
+        posters[self.conf.poster % metadata.get('id')] = (
+            self.conf.thumb % metadata.get('id'),
+            1,
+            'ru',
+            1000000
+        )
         del posters
 
+        if not gallery_data or 'frames' not in gallery_data:
+            return
+
         backdrops = metadata['backdrops']['kp'] = {}
-        for i, kadr in enumerate(gallery_data['gallery'].get('kadr', [])):
-            backdrops[self.conf.images % kadr['image']] = (
-                self.conf.images % kadr['preview'],
+        for i, kadr in enumerate(gallery_data.get('frames', [])):
+            backdrops[kadr['image']] = (
+                kadr['preview'],
                 i,
-                'xx',
+                'ru',
                 0
             )
         del backdrops

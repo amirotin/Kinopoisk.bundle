@@ -299,8 +299,11 @@ class KinopoiskSource(SourceBase):
                         i in movie_data['rentData'] and len(movie_data['rentData'][i]) == 10]
                         ) else None
 
-        metadata['ratings']['kp'] = float(movie_data.get('ratingKinopoisk', 0))
-        metadata['ratings']['imdb'] = float(movie_data.get('ratingImdb', 0))
+        if movie_data.get('ratingKinopoisk'):            
+            metadata['ratings']['kp'] = float(movie_data.get('ratingKinopoisk', 0))
+
+        if movie_data.get('ratingImdb'):   
+            metadata['ratings']['imdb'] = float(movie_data.get('ratingImdb', 0))
 
         summary_add = ''
         if self.api.Prefs['desc_show_slogan'] and movie_data.get('slogan'):

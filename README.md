@@ -13,7 +13,7 @@
 ## Пути и установка плагина
 Скачайте ZIP-архив с сайта [github.com](https://github.com/Jenstel/Kinopoisk.bundle)
 
-![Скриншот](https://b.radikal.ru/b40/1901/0f/68f5052dddd3.png)
+![Скриншот](https://user-images.githubusercontent.com/562733/135882979-d7c38ba7-a643-4da5-94f7-aec144cc7011.png)
 ### Windows
 Распакуйте скачанный архив в папку `%LOCALAPPDATA%\Plex Media Server\Plug-ins`. Альтернативно можно щелкнуть правой кнопкой мыши на иконке PMS в системном трее (рядом с часами) и выбрать пункт "Открыть папку плагинов" ("Open plugins folder").
 
@@ -68,12 +68,9 @@ sudo service plexmediaserver restart
 
 ## [Список изменений](CHANGELOG.md)
 
-## Known issues
-В случае если плагин не скачивает метаданные фильмов - необходимо отключить загрузку трейлеров с Кинопоиска.
-
 ## Об авторе
-Автор: Artem Mirotin aka @amirotin <br />
-Автор доработок: Aleksey Ganuta aka [@ziemenz](https://t.me/ziemenz) <br />
+Автор: Artem Mirotin aka @amirotin<br />
+Автор доработок: Aleksey Ganuta aka [@ziemenz](https://t.me/ziemenz) и Jenstel<br />
 Документация: Vladimir Sharapov aka [@EvelRus](mailto:evelrus@mail.ru)
 
-Постоянная ссылка на плагин - [https://github.com/amirotin/Kinopoisk.bundle](https://github.com/amirotin/Kinopoisk.bundle)
+Постоянная ссылка на обновленный плагин - [https://github.com/Jenstel/Kinopoisk.bundle](https://github.com/Jenstel/Kinopoisk.bundle)

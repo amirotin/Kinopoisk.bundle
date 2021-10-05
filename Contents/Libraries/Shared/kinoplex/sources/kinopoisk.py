@@ -284,11 +284,10 @@ class KinopoiskSource(SourceBase):
         for genre in movie_data.get('genres', []):
             metadata['genres'].append(genre['genre'])
 
-        if self.api.Prefs['content_rating'] == "MPAA":
-            metadata['content_rating'] = movie_data.get('ratingMpaa', '')
+        if self.api.Prefs['content_rating'] == "MPAA" and movie_data.get('ratingMpaa'):
+            metadata['content_rating'] = movie_data.get('ratingMpaa', '').upper()
         elif self.api.Prefs['content_rating'] == "Возраст" and movie_data.get('ratingAgeLimits'):
             metadata['content_rating'] = '%s+' % movie_data.get('ratingAgeLimits')
-
 
         if movie_data.get('premiereWorld'):
             metadata['originally_available_at'] = self.api.Datetime.ParseDate(
@@ -307,15 +306,15 @@ class KinopoiskSource(SourceBase):
         if self.api.Prefs['desc_show_slogan'] and movie_data.get('slogan'):
             summary_add += '%s\n' % movie_data.get('slogan')
 
-        if movie_data.get('ratingKinopoisk'):
+        if self.api.Prefs['desc_rating_kp'] and movie_data.get('ratingKinopoisk'):
             summary_add += u'КиноПоиск: %s' % movie_data.get('ratingKinopoisk')
-            if movie_data.get('ratingKinopoiskVoteCount'):
+            if self.api.Prefs['desc_rating_vote_count'] and movie_data.get('ratingKinopoiskVoteCount'):
                 summary_add += ' (%s)' % movie_data.get('ratingKinopoiskVoteCount')
             summary_add += '\n' if self.api.Prefs['desc_rating_newline'] else '. '
 
-        if movie_data.get('ratingImdb'):
+        if self.api.Prefs['desc_rating_imdb'] and movie_data.get('ratingImdb'):
             summary_add += u'IMDB: %s' % movie_data.get('ratingImdb')
-            if movie_data.get('ratingImdbVoteCount'):
+            if self.api.Prefs['desc_rating_vote_count'] and movie_data.get('ratingImdbVoteCount'):
                 summary_add += ' (%s)' % movie_data.get('ratingImdbVoteCount')
             summary_add += '\n' if self.api.Prefs['desc_rating_newline'] else '. '
         metadata['summary'] = summary_add + movie_data.get('description', '')

@@ -1,5 +1,3 @@
-# ПЛАГИН ПЕРЕДЕЛАН НА РАБОТУ С НЕОФИЦИАЛЬНЫМ API kinopoiskapiunofficial.tech
-
 # Kinopoisk.bundle
 
 > Документация в разработке. Последнее обновление 21.05.2020 г.
@@ -8,7 +6,6 @@
 
 ## Установка Plex Media Server
 [Скачать Plex Media Server](https://www.plex.tv/media-server-downloads/) для вашей операционной системы. Далее Plex Media Server - PMS.
-
 
 ## Пути и установка плагина
 Скачайте ZIP-архив с сайта [github.com](https://github.com/Jenstel/Kinopoisk.bundle)
@@ -25,9 +22,9 @@
 ```
 sudo apt update && sudo apt install -y git
 cd /var/lib/plexmediaserver/Library/Application\ Support/Plex\ Media\ Server/Plug-ins/
-sudo git clone https://github.com/ziemenz/Kinopoisk.bundle.git
+sudo git clone https://github.com/Jenstel/Kinopoisk.bundle.git
 sudo chown -R plex:plex Kinopoisk.bundle/
-sudo service plexmediaserver restart
+sudo systemctl restart plexmediaserver
 ```
 ### FreeBSD
 Распакуйте скачанный архив в папку `/usr/local/plexdata/Plex Media Server/`
@@ -47,7 +44,6 @@ sudo service plexmediaserver restart
 ### Другие операционные системы
 
 Пути расположения папки с плагинами других систем ищите на официальном сайте [Plex.TV](https://support.plex.tv/articles/202915258-where-is-the-plex-media-server-data-directory-located/)
-
 
 ## Возможности
 1. Загрузка рейтингов для фильмов

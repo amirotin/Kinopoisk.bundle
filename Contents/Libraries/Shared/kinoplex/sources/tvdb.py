@@ -44,22 +44,22 @@ class TVDBSource(SourceBase):
         source_id = metadata['meta_ids'].get(self.source_name)
         if not source_id:
             source_id = metadata['meta_ids'][self.source_name] = self._search(metadata, media, lang)
-
-        series_resp = self.make_request(self.conf.series, lang, source_id)
-
+        if source_id:
+            series_resp = self.make_request(self.conf.series, lang, source_id)
+            
         if 'errors' in series_resp and series_resp['errors'].get('invalidLanguage') and lang != 'en':
-            series_resp = self.make_request(self.conf.series, 'en', source_id)
+                series_resp = self.make_request(self.conf.series, 'en', source_id)
 
         series_data = series_resp.get('data', {})
-        if not series_data:
-            self.l('no data for tv serie %s' % source_id)
-            return
+            if not series_data:
+                self.l('no data for tv serie %s' % source_id)
+                return
 
         episodes_data = []
-        next_page = 1
-        while isinstance(next_page, int) or (isinstance(next_page, basestring) and next_page.isdigit()):
-            next_page = int(next_page)
-            episode_data_page = self.make_request(self.conf.episodes, lang, source_id, next_page)
-            episodes_data.extend(episode_data_page['data'])
-            next_page = episode_data_page['links']['next']
-
+            next_page = 1
+            while isinstance(next_page, int) or (isinstance(next_page, basestring) and next_page.isdigit()):
+                next_page = int(next_page)
+                episode_data_page = self.make_request(self.conf.episodes, lang, source_id, next_page)
+                episodes_data.extend(episode_data_page['data'])
+                next_page = episode_data_page['links']['next']
+                

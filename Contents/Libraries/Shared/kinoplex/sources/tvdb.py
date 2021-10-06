@@ -42,10 +42,10 @@ class TVDBSource(SourceBase):
             return
         self.l('update from TVDBSource')
         source_id = metadata['meta_ids'].get(self.source_name)
-        if not source_id:
-            source_id = metadata['meta_ids'][self.source_name] = self._search(metadata, media, lang)
-        if source_id:
-            series_resp = self.make_request(self.conf.series, lang, source_id)
+            if not source_id:
+                source_id = metadata['meta_ids'][self.source_name] = self._search(metadata, media, lang)
+            if source_id:
+                series_resp = self.make_request(self.conf.series, lang, source_id)
             
         if 'errors' in series_resp and series_resp['errors'].get('invalidLanguage') and lang != 'en':
                 series_resp = self.make_request(self.conf.series, 'en', source_id)

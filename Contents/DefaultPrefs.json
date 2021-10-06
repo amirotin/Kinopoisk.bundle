@@ -1,7 +1,7 @@
 [
   {
     "id": "github_issues",
-    "label": "(!) О всех ошибках, проблемах, пожелания в работе агента просьба сообщать в ветку на GitHub https://github.com/amirotin/Kinopoisk.bundle/issues",
+    "label": "(!) О всех ошибках, проблемах, пожелания в работе агента просьба сообщать в ветку на GitHub https://github.com/Jenstel/Kinopoisk.bundle/issues",
     "type":"bool"
   },
   {

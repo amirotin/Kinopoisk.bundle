@@ -64,6 +64,11 @@ sudo systemctl restart plexmediaserver
 
 ## [Список изменений](CHANGELOG.md)
 
+## Получение API-ключа
+![image](https://user-images.githubusercontent.com/562733/136152946-6f2b40a4-9465-400a-960e-1529b97244bc.png)
+
+Необходимо перейти на сайт [API-unofficial](https://kinopoiskapiunofficial.tech/) и нажать вверху "Sign ip", после регистрации на вашу почту придет письмо с кодом активации аккаунта. Далее заходим в личный кабинет и выбираем вкладку "Profile", в которой можно будет увидеть ваш персональный API-ключ, который необходимо скопировать и вставить в настройки плагина.
+
 ## Об авторе
 Автор: Artem Mirotin aka @amirotin<br />
 Автор доработок: Aleksey Ganuta aka [@ziemenz](https://t.me/ziemenz) и [@Jenstel](https://t.me/Jenstel)<br />

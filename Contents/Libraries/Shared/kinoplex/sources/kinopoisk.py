@@ -112,7 +112,9 @@ class KinopoiskSource(SourceBase):
     def find_by_id(self, movie_id):
         movie_data = self.make_request(self.conf.api.film_details, movie_id)
         if movie_data:
-            return movie_data['nameRU'], int(movie_data.get('year').split('-', 1)[0] or 0)
+            return movie_data.get('nameRu',
+                                  movie_data.get('nameEn', 'Unknown movie name %s' % movie_id)), movie_data.get('year',
+                                                                                                                0)
         return None, None
 
     def search(self, results, media, lang, manual=False, primary=True):
